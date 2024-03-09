@@ -6,6 +6,10 @@ type DataSource[T any] interface {
 	Load(fileName string) (T, error)
 }
 
+type DataSaver[T any] interface {
+	Save(data *T, fileName string) error
+}
+
 type Identifiable interface {
 	GetId() int
 }
@@ -30,4 +34,16 @@ func (d *DictionaryData[T]) Get(idx int) (*T, error) {
 		return nil, errors.New("invalid " + d.name + " id")
 	}
 	return &v, nil
+}
+
+func (d *DictionaryData[T]) SaveTo(saver DataSaver[[]T], fileName string) error {
+	var list []T
+	for _, v := range d.data {
+		list = append(list, v)
+	}
+	return saver.Save(&list, fileName)
+}
+
+func (d *DictionaryData[T]) Save(saver DataSaver[[]T]) error {
+	return d.SaveTo(saver, d.fileName)
 }

@@ -176,8 +176,11 @@ func (t *TimeSeriesData[T]) GetRange(from int, to int) ([]TimeSeriesDataRange[T]
 
 func (t *TimeSeriesData[T]) Get(date int) (int, *T, error) {
 	idx := t.IndexCalculator(date)
-	if idx < 0 || idx > t.maxIndex {
+	if idx < 0 {
 		return idx, nil, nil
+	}
+	if idx > t.maxIndex {
+		idx = t.maxIndex
 	}
 	for i := idx; i >= 0; idx-- {
 		d := t.data[i]

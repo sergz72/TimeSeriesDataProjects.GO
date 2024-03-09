@@ -7,13 +7,13 @@ import (
 	"strconv"
 )
 
-type JsonDatedSource struct{}
+type jsonDatedSource struct{}
 
-func (s JsonDatedSource) GetFileDate(_ string, folderName string) (int, error) {
+func (s jsonDatedSource) GetFileDate(_ string, folderName string) (int, error) {
 	return strconv.Atoi(folderName)
 }
 
-func (s JsonDatedSource) Load(files []core.FileWithDate) (*entities.FinanceRecord, error) {
+func (s jsonDatedSource) Load(files []core.FileWithDate) (*entities.FinanceRecord, error) {
 	var operations []entities.FinanceOperation
 	for _, f := range files {
 		ops, err := core.LoadJson[[]entities.FinanceOperation](f.FileName)
@@ -28,17 +28,32 @@ func (s JsonDatedSource) Load(files []core.FileWithDate) (*entities.FinanceRecor
 	return entities.NewFinanceRecord(operations), nil
 }
 
-func (s JsonDatedSource) GetFiles(date int) ([]core.FileWithDate, error) {
+func (s jsonDatedSource) GetFiles(date int) ([]core.FileWithDate, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (s JsonDatedSource) Save(date int, data *entities.FinanceRecord) error {
+func (s jsonDatedSource) Save(date int, data *entities.FinanceRecord) error {
 	return errors.New("not implemented")
 }
 
-type JsonDBConfiguration struct{}
+type jsonDBConfiguration struct{}
 
-func (c JsonDBConfiguration) GetAccounts(fileName string) ([]entities.Account, error) {
+func (c jsonDBConfiguration) GetAccountsSaver() core.DataSaver[[]entities.Account] {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c jsonDBConfiguration) GetCategoriesSaver() core.DataSaver[[]entities.Category] {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c jsonDBConfiguration) GetSubcategoriesSaver() core.DataSaver[[]entities.Subcategory] {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c jsonDBConfiguration) GetAccounts(fileName string) ([]entities.Account, error) {
 	data, err := core.LoadJson[[]entities.Account](fileName + ".json")
 	if err != nil {
 		return nil, err
@@ -57,14 +72,14 @@ func (c JsonDBConfiguration) GetAccounts(fileName string) ([]entities.Account, e
 	return data, nil
 }
 
-func (c JsonDBConfiguration) GetCategories(fileName string) ([]entities.Category, error) {
+func (c jsonDBConfiguration) GetCategories(fileName string) ([]entities.Category, error) {
 	return core.LoadJson[[]entities.Category](fileName + ".json")
 }
 
-func (c JsonDBConfiguration) GetSubcategories(fileName string) ([]entities.Subcategory, error) {
+func (c jsonDBConfiguration) GetSubcategories(fileName string) ([]entities.Subcategory, error) {
 	return core.LoadJson[[]entities.Subcategory](fileName + ".json")
 }
 
-func (c JsonDBConfiguration) GetMainDataSource() core.DatedSource[entities.FinanceRecord] {
-	return JsonDatedSource{}
+func (c jsonDBConfiguration) GetMainDataSource() core.DatedSource[entities.FinanceRecord] {
+	return jsonDatedSource{}
 }

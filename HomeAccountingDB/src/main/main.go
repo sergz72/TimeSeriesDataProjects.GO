@@ -1,6 +1,7 @@
 package main
 
 import (
+	"TimeSeriesData/core"
 	"fmt"
 	"os"
 	"strconv"
@@ -8,7 +9,7 @@ import (
 )
 
 func usage() {
-	fmt.Println("Usage: HomeAccountingDB2 db_files_location\n  test_json date")
+	fmt.Println("Usage: HomeAccountingDB2 config_file_name\n  test_json date\n  migrate source_folder")
 }
 
 func main() {
@@ -17,35 +18,56 @@ func main() {
 		usage()
 		return
 	}
+	s, err := core.LoadJson[settings](os.Args[1])
+	if err != nil {
+		panic(err)
+	}
 	switch os.Args[2] {
 	case "test_json":
 		if l != 4 {
 			usage()
 		} else {
-			test(os.Args[1], JsonDBConfiguration{}, os.Args[3])
+			test(s, jsonDBConfiguration{}, os.Args[3])
+		}
+	case "migrate":
+		if l != 4 {
+			usage()
+		} else {
+			migrate(s, os.Args[3])
 		}
 	}
 }
 
-func test(dataFolderPath string, configuration DBConfiguration, dateString string) {
-	date, err := strconv.Atoi(dateString)
-	if err != nil {
-		panic(err)
-	}
+func buildDB(s settings, dbConfiguration dBConfiguration) *dB {
 	fmt.Println("Reading DB files...")
 	start := time.Now()
-	db, err := LoadDB(2012, 6, dataFolderPath, configuration, 1000)
+	db, err := loadDB(s, dbConfiguration)
 	fmt.Printf("%v elapsed.\n", time.Since(start))
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("Calculating finance totals...")
 	start = time.Now()
-	err = db.BuildTotals(0)
+	err = db.buildTotals(0)
 	if err != nil {
-		fmt.Println("BuildTotals error: " + err.Error())
-		return
+		panic("BuildTotals error: " + err.Error())
 	}
 	fmt.Printf("%v elapsed.\n", time.Since(start))
-	db.PrintChanges(date)
+	return db
+}
+
+func migrate(s settings, sourceFolder string) {
+	destFolder := s.DataFolderPath
+	s.DataFolderPath = sourceFolder
+	db := buildDB(s, jsonDBConfiguration{})
+	db.saveTo(destFolder, binaryDBConfiguration{})
+}
+
+func test(s settings, dbConfiguration dBConfiguration, dateString string) {
+	date, err := strconv.Atoi(dateString)
+	if err != nil {
+		panic(err)
+	}
+	db := buildDB(s, dbConfiguration)
+	db.printChanges(date)
 }
