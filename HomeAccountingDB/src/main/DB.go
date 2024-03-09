@@ -46,7 +46,11 @@ func LoadDB(minYear int, minMonth int, dataFolderPath string, configuration DBCo
 			year := date / 100
 			month := date % 100
 			return month - minMonth + (year-minYear)*12
-		})
+		}, func(idx int) int {
+			month := idx + minMonth
+			year := minYear + month/12
+			return year*100 + (month % 12)
+		}, 1000000)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +78,7 @@ func (d *DB) BuildTotals(from int) error {
 }
 
 func (d *DB) PrintChanges(date int) {
-	v, err := d.data.Get(date)
+	key, v, err := d.data.Get(date)
 	if err != nil {
 		panic(err)
 	}
@@ -84,13 +88,15 @@ func (d *DB) PrintChanges(date int) {
 		if err != nil {
 			panic(err)
 		}
+		fmt.Println(d.data.DateCalculator(key))
 		for acc, ch := range result.Changes {
 			var account *entities.Account
 			account, err = d.accounts.Get(acc)
 			if err != nil {
 				panic(err)
 			}
-			fmt.Printf("%v %v %v %v %v\n", account.GetName(), ch.StartBalance, ch.SummaIncome, ch.SummaExpenditure, ch.GetEndSumma())
+			fmt.Printf("%v %v %v %v %v\n", account.GetName(), ch.StartBalance,
+				ch.SummaIncome, ch.SummaExpenditure, ch.GetEndSumma())
 		}
 	} else {
 		fmt.Println("no data")

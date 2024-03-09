@@ -51,12 +51,12 @@ type FinOpProperty struct {
 }
 
 type FinanceOperation struct {
-	Date           int `json:"-"`
-	Amount         *Decimal
-	Summa          Decimal
-	SubcategoryId  int
-	FinOpProperies []FinOpProperty
-	AccountId      int
+	Date            int `json:"-"`
+	Amount          *Decimal
+	Summa           Decimal
+	SubcategoryId   int
+	FinOpProperties []FinOpProperty `json:"finOpProperies"`
+	AccountId       int
 }
 
 type FinanceChange struct {
@@ -141,7 +141,7 @@ func (op *FinanceOperation) handleINCC(current *FinanceChange, changes map[int]*
 // Снятие наличных в банкомате
 func (op *FinanceOperation) handleEXPC(current *FinanceChange, changes map[int]*FinanceChange, accounts core.DictionaryData[Account]) error {
 	current.Expenditure(int(op.Summa))
-	// cash account for corresponding curency
+	// cash account for corresponding currency
 	accountId, err := getCashAccount(op.AccountId, accounts)
 	if err != nil {
 		return err
@@ -166,8 +166,8 @@ func (op *FinanceOperation) handleEXCH(current *FinanceChange, changes map[int]*
 // Перевод средств между платежными картами
 func (op *FinanceOperation) handleTRFR(current *FinanceChange, changes map[int]*FinanceChange, summa int) error {
 	current.Expenditure(summa)
-	if op.FinOpProperies != nil {
-		for _, property := range op.FinOpProperies {
+	if op.FinOpProperties != nil {
+		for _, property := range op.FinOpProperties {
 			if property.PropertyCode == Seca {
 				if property.NumericValue == nil {
 					return nil

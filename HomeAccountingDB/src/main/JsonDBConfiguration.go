@@ -3,6 +3,7 @@ package main
 import (
 	"HomeAccountingDB/src/entities"
 	"TimeSeriesData/core"
+	"errors"
 	"strconv"
 )
 
@@ -25,6 +26,14 @@ func (s JsonDatedSource) Load(files []core.FileWithDate) (*entities.FinanceRecor
 		operations = append(operations, ops...)
 	}
 	return entities.NewFinanceRecord(operations), nil
+}
+
+func (s JsonDatedSource) GetFiles(date int) ([]core.FileWithDate, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (s JsonDatedSource) Save(date int, data *entities.FinanceRecord) error {
+	return errors.New("not implemented")
 }
 
 type JsonDBConfiguration struct{}

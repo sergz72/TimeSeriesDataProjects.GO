@@ -2,12 +2,6 @@ package core
 
 import "os"
 
-type LruItem[T any] struct {
-	data *T
-	next *LruItem[T]
-	prev *LruItem[T]
-}
-
 type FileWithDate struct {
 	FileName string
 	Date     int
@@ -16,6 +10,8 @@ type FileWithDate struct {
 type DatedSource[T any] interface {
 	GetFileDate(fileName string, folderName string) (int, error)
 	Load(files []FileWithDate) (*T, error)
+	GetFiles(date int) ([]FileWithDate, error)
+	Save(date int, data *T) error
 }
 
 type TimeSeriesDataRange[T any] struct {
@@ -26,17 +22,35 @@ type TimeSeriesDataRange[T any] struct {
 type TimeSeriesData[T any] struct {
 	dataFolderPath  string
 	source          DatedSource[T]
-	indexCalculator func(int) int
+	IndexCalculator func(int) int
+	DateCalculator  func(int) int
 	data            []*LruItem[T]
 	maxIndex        int
-	head            *LruItem[T]
-	tail            *LruItem[T]
+	maxActiveItems  int
+	lruManager      LruManager[T]
+	modified        map[int]bool
 }
 
-func LoadTimeSeriesData[T any](dataFolderPath string, source DatedSource[T], capacity int,
-	indexCalculator func(int) int) (TimeSeriesData[T], error) {
-	data := TimeSeriesData[T]{dataFolderPath: dataFolderPath, source: source, maxIndex: -1, indexCalculator: indexCalculator,
-		data: make([]*LruItem[T], capacity), head: nil, tail: nil}
+func NewTimeSeriesData[T any](
+	dataFolderPath string,
+	source DatedSource[T],
+	capacity int,
+	indexCalculator func(int) int,
+	dateCalculator func(int) int,
+	maxActiveItems int) TimeSeriesData[T] {
+	return TimeSeriesData[T]{dataFolderPath: dataFolderPath, source: source, maxIndex: -1, IndexCalculator: indexCalculator,
+		DateCalculator: dateCalculator, data: make([]*LruItem[T], capacity), lruManager: LruManager[T]{},
+		maxActiveItems: maxActiveItems, modified: make(map[int]bool)}
+}
+
+func LoadTimeSeriesData[T any](
+	dataFolderPath string,
+	source DatedSource[T],
+	capacity int,
+	indexCalculator func(int) int,
+	dateCalculator func(int) int,
+	maxActiveItems int) (TimeSeriesData[T], error) {
+	data := NewTimeSeriesData(dataFolderPath, source, capacity, indexCalculator, dateCalculator, maxActiveItems)
 	files, err := data.getFileList("")
 	if err != nil {
 		return data, err
@@ -58,23 +72,51 @@ func LoadTimeSeriesData[T any](dataFolderPath string, source DatedSource[T], cap
 		if err != nil {
 			return data, err
 		}
-		data.Add(k, item)
+		err = data.Add(k, item)
+		if err != nil {
+			return data, err
+		}
 	}
 	return data, nil
 }
 
-func (t *TimeSeriesData[T]) Add(k int, item *T) {
+func InitTimeSeriesData[T any](
+	dataFolderPath string,
+	source DatedSource[T],
+	capacity int,
+	indexCalculator func(int) int,
+	dateCalculator func(int) int,
+	maxActiveItems int) (TimeSeriesData[T], error) {
+	data := NewTimeSeriesData(dataFolderPath, source, capacity, indexCalculator, dateCalculator, maxActiveItems)
+	files, err := data.getFileList("")
+	if err != nil {
+		return data, err
+	}
+	indexes := make(map[int]bool)
+	for _, f := range files {
+		idx := indexCalculator(f.Date)
+		indexes[idx] = true
+	}
+	for idx := range indexes {
+		data.set(idx, &LruItem[T]{})
+	}
+	return data, nil
+}
+
+func (t *TimeSeriesData[T]) set(k int, item *LruItem[T]) {
 	if k > t.maxIndex {
 		t.maxIndex = k
 	}
-	i := &LruItem[T]{item, nil, t.head}
-	t.data[k] = i
-	if t.head != nil {
-		t.head.next = i
-	} else {
-		t.tail = i
+	t.data[k] = item
+}
+
+func (t *TimeSeriesData[T]) Add(k int, item *T) error {
+	err := t.cleanup()
+	if err != nil {
+		return err
 	}
-	t.head = i
+	t.set(k, t.lruManager.Add(k, item))
+	return nil
 }
 
 func (t *TimeSeriesData[T]) getFileList(folder string) ([]FileWithDate, error) {
@@ -110,11 +152,11 @@ func (t *TimeSeriesData[T]) getFileList(folder string) ([]FileWithDate, error) {
 }
 
 func (t *TimeSeriesData[T]) GetRange(from int, to int) ([]TimeSeriesDataRange[T], error) {
-	idx1 := t.indexCalculator(from)
+	idx1 := t.IndexCalculator(from)
 	if idx1 < 0 {
 		idx1 = 0
 	}
-	idx2 := t.indexCalculator(to)
+	idx2 := t.IndexCalculator(to)
 	var result []TimeSeriesDataRange[T]
 	for i := idx1; i <= idx2; i++ {
 		if i > t.maxIndex {
@@ -122,22 +164,77 @@ func (t *TimeSeriesData[T]) GetRange(from int, to int) ([]TimeSeriesDataRange[T]
 		}
 		d := t.data[i]
 		if d != nil {
-			result = append(result, TimeSeriesDataRange[T]{i, d.data})
+			item, err := t.get(d)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, TimeSeriesDataRange[T]{i, item})
 		}
 	}
 	return result, nil
 }
 
-func (t *TimeSeriesData[T]) Get(date int) (*T, error) {
-	idx := t.indexCalculator(date)
+func (t *TimeSeriesData[T]) Get(date int) (int, *T, error) {
+	idx := t.IndexCalculator(date)
 	if idx < 0 || idx > t.maxIndex {
-		return nil, nil
+		return idx, nil, nil
 	}
 	for i := idx; i >= 0; idx-- {
 		d := t.data[i]
 		if d != nil {
-			return d.data, nil
+			dd, err := t.get(d)
+			return i, dd, err
 		}
 	}
-	return nil, nil
+	return idx, nil, nil
+}
+
+func (t *TimeSeriesData[T]) get(item *LruItem[T]) (*T, error) {
+	if item.Data != nil {
+		t.lruManager.MoveToFront(item)
+		return item.Data, nil
+	}
+	err := t.cleanup()
+	if err != nil {
+		return nil, err
+	}
+	date := t.DateCalculator(item.Key)
+	files, err := t.source.GetFiles(date)
+	if err != nil {
+		return nil, err
+	}
+	var data *T
+	data, err = t.source.Load(files)
+	if err != nil {
+		return nil, err
+	}
+	item.Data = data
+	t.lruManager.Attach(item)
+
+	return item.Data, nil
+}
+
+func (t *TimeSeriesData[T]) cleanup() error {
+	for t.lruManager.activeItems >= t.maxActiveItems {
+		err := t.removeByLru()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t *TimeSeriesData[T]) removeByLru() error {
+	tail := t.lruManager.GetTail()
+	if t.modified[tail.Key] {
+		date := t.DateCalculator(tail.Key)
+		err := t.source.Save(date, tail.Data)
+		if err != nil {
+			return err
+		}
+		delete(t.modified, tail.Key)
+	}
+	tail.Data = nil
+	t.lruManager.Detach(tail)
+	return nil
 }
