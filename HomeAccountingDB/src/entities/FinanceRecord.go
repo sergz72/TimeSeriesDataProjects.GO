@@ -1,6 +1,9 @@
 package entities
 
-import "TimeSeriesData/core"
+import (
+	"TimeSeriesData/core"
+	"io"
+)
 
 type FinanceRecord struct {
 	operations []FinanceOperation
@@ -83,4 +86,13 @@ func (r *FinanceRecord) BuildOpsAndChanges(date int, accounts core.DictionaryDat
 		Operations: ops,
 		Changes:    changes,
 	}, nil
+}
+
+func (r *FinanceRecord) Save(writer io.Writer) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func NewFinanceRecordFromBinary(reader io.Reader) (*FinanceRecord, error) {
+	return nil, nil
 }
