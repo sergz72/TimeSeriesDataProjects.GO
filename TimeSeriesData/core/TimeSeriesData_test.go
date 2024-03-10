@@ -16,12 +16,12 @@ func (t testDatedSource) Load(files []FileWithDate) (*testData, error) {
 	panic("implement me")
 }
 
-func (t testDatedSource) GetFiles(date int) ([]FileWithDate, error) {
+func (t testDatedSource) GetFiles(date int, dataFolderPath string) ([]FileWithDate, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (t testDatedSource) Save(date int, data *testData) error {
+func (t testDatedSource) Save(date int, data *testData, dataFolderPath string) error {
 	//TODO implement me
 	panic("implement me")
 }

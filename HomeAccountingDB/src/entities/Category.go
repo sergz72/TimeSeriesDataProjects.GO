@@ -24,5 +24,12 @@ func (c Category) Save(writer io.Writer) error {
 }
 
 func NewCategoryFromBinary(reader io.Reader) (Category, error) {
-	return Category{}, nil
+	var id uint32
+	err := binary.Read(reader, binary.BigEndian, &id)
+	if err != nil {
+		return Category{}, nil
+	}
+	var name string
+	name, err = core.ReadStringFromBinary(reader)
+	return Category{int(id), name}, err
 }

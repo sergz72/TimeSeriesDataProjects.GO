@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestBinary(t *testing.T) {
+func TestFinanceRecordBinary(t *testing.T) {
 	var ops []FinanceOperation
 	for i := 0; i < 100; i += 2 {
 		amount := Decimal(i)

@@ -1,9 +1,9 @@
 package core
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
-	"bytes"
 	"io"
 	"os"
 )
@@ -21,27 +21,39 @@ type BinarySaver[T any] struct {
 	processor CryptoProcessor
 }
 
+func NewBinarySaver[T any](processor CryptoProcessor) BinarySaver[T] {
+	return BinarySaver[T]{processor: processor}
+}
+
 func (b BinarySaver[T]) Save(data T, fileName string) error {
+	result, err := b.buildBytes(data)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(fileName, result, 0644)
+}
+
+func (b BinarySaver[T]) buildBytes(data T) ([]byte, error) {
 	bdata, ok := any(data).(BinaryData)
 	if ok {
-		return SaveBinary(fileName, b.processor, bdata)
+		return buildBinaryDataBytes(b.processor, bdata)
 	}
 	adata, ok := any(data).([]BinaryData)
 	if ok {
 		buffer := new(bytes.Buffer)
 		err := binary.Write(buffer, binary.BigEndian, uint16(len(adata)))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		for _, item := range adata {
 			err = item.Save(buffer)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
-		return SaveBinaryBuffer(fileName, b.processor, buffer)
+		return buildBytes(b.processor, buffer), nil
 	}
-	return errors.New("unsupported data type")
+	return nil, errors.New("unsupported data type")
 }
 
 func NewBinaryData[T any](reader io.Reader, creator func(reader io.Reader) (T, error)) ([]T, error) {
@@ -62,25 +74,36 @@ func NewBinaryData[T any](reader io.Reader, creator func(reader io.Reader) (T, e
 	return result, nil
 }
 
-func LoadBinary[T any](fileName string, processor CryptoProcessor,
-	creator func(reader io.Reader) (T, error)) (T, error) {
+func LoadBinary[T any](fileName string, processor CryptoProcessor, creator func(reader io.Reader) (T, error)) (T, error) {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
 		var object T
 		return object, err
 	}
+	return LoadBinaryData(data, processor, creator)
+}
+
+func LoadBinaryData[T any](data []byte, processor CryptoProcessor, creator func(reader io.Reader) (T, error)) (T, error) {
 	if processor != nil {
+		var err error
 		data, err = processor.Decrypt(data)
 		if err != nil {
 			var object T
 			return object, err
 		}
 	}
-	return creator(bytes.NewBuffer(data))
+	buffer := bytes.NewBuffer(data)
+	value, err := creator(buffer)
+	if err != nil {
+		return value, err
+	}
+	if buffer.Len() != 0 {
+		return value, errors.New("non zero buffer length")
+	}
+	return value, err
 }
 
-func LoadBinaryP[T any](fileName string, processor CryptoProcessor,
-	creator func(reader io.Reader) (*T, error)) (*T, error) {
+func LoadBinaryP[T any](fileName string, processor CryptoProcessor, creator func(reader io.Reader) (*T, error)) (*T, error) {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, err
@@ -91,28 +114,36 @@ func LoadBinaryP[T any](fileName string, processor CryptoProcessor,
 			return nil, err
 		}
 	}
-	return creator(bytes.NewBuffer(data))
+	return LoadBinaryDataP(data, processor, creator)
 }
 
-func SaveBinaryBuffer(fileName string, processor CryptoProcessor, buffer *bytes.Buffer) error {
+func LoadBinaryDataP[T any](data []byte, processor CryptoProcessor, creator func(reader io.Reader) (*T, error)) (*T, error) {
+	buffer := bytes.NewBuffer(data)
+	value, err := creator(buffer)
+	if err != nil {
+		return nil, err
+	}
+	if buffer.Len() != 0 {
+		return value, errors.New("non zero buffer length")
+	}
+	return value, err
+}
+
+func buildBytes(processor CryptoProcessor, buffer *bytes.Buffer) []byte {
 	data := buffer.Bytes()
 	if processor != nil {
-		var err error
-		data = processor.Encrypt(data)
-		if err != nil {
-			return err
-		}
+		return processor.Encrypt(data)
 	}
-	return os.WriteFile(fileName, data, 0644)
+	return data
 }
 
-func SaveBinary(fileName string, processor CryptoProcessor, object BinaryData) error {
+func buildBinaryDataBytes(processor CryptoProcessor, object BinaryData) ([]byte, error) {
 	buffer := new(bytes.Buffer)
 	err := object.Save(buffer)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return SaveBinaryBuffer(fileName, processor, buffer)
+	return buildBytes(processor, buffer), nil
 }
 
 func ReadStringFromBinary(reader io.Reader) (string, error) {

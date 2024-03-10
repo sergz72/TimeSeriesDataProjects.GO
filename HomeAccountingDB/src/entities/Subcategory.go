@@ -114,5 +114,31 @@ func (s Subcategory) Save(writer io.Writer) error {
 }
 
 func NewSubcategoryFromBinary(reader io.Reader) (Subcategory, error) {
-	return Subcategory{}, nil
+	var id uint32
+	err := binary.Read(reader, binary.BigEndian, &id)
+	if err != nil {
+		return Subcategory{}, nil
+	}
+	var name string
+	name, err = core.ReadStringFromBinary(reader)
+	if err != nil {
+		return Subcategory{}, nil
+	}
+	var categoryId uint32
+	err = binary.Read(reader, binary.BigEndian, &categoryId)
+	if err != nil {
+		return Subcategory{}, nil
+	}
+	var code uint8
+	err = binary.Read(reader, binary.BigEndian, &code)
+	if err != nil {
+		return Subcategory{}, nil
+	}
+	var operationCode uint8
+	err = binary.Read(reader, binary.BigEndian, &operationCode)
+	if err != nil {
+		return Subcategory{}, nil
+	}
+	return Subcategory{Id: int(id), Name: name, CategoryId: int(categoryId), Code: SubcategoryCode(code),
+		OperationCodeId: SubcategoryOperationCode(operationCode)}, nil
 }
