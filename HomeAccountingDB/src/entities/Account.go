@@ -1,6 +1,8 @@
 package entities
 
 import (
+	"TimeSeriesData/core"
+	"encoding/binary"
 	"encoding/json"
 	"io"
 )
@@ -37,12 +39,26 @@ func (a *Account) GetName() string {
 	return a.Name
 }
 
-func NewAccounts(reader io.Reader) ([]Account, error) {
-	return nil, nil
+func (a Account) Save(writer io.Writer) error {
+	err := binary.Write(writer, binary.BigEndian, uint32(a.Id))
+	if err != nil {
+		return err
+	}
+	err = core.WriteStringToBinary(writer, a.Name)
+	if err != nil {
+		return err
+	}
+	err = binary.Write(writer, binary.BigEndian, int32(a.CashAccount))
+	if err != nil {
+		return err
+	}
+	err = binary.Write(writer, binary.BigEndian, uint32(a.ActiveTo))
+	if err != nil {
+		return err
+	}
+	return core.WriteStringToBinary(writer, a.Currency)
 }
 
-type Accounts []Account
-
-func (a Accounts) Save(writer io.Writer) error {
-	return nil
+func NewAccountFromBinary(reader io.Reader) (Account, error) {
+	return Account{}, nil
 }

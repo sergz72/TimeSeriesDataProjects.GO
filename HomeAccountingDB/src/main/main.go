@@ -2,6 +2,7 @@ package main
 
 import (
 	"TimeSeriesData/core"
+	"TimeSeriesData/crypto"
 	"fmt"
 	"os"
 	"strconv"
@@ -9,7 +10,7 @@ import (
 )
 
 func usage() {
-	fmt.Println("Usage: HomeAccountingDB2 config_file_name\n  test_json date\n  migrate source_folder")
+	fmt.Println("Usage: HomeAccountingDB2 config_file_name\n  test_json date\n  migrate source_folder aes_key_file")
 }
 
 func main() {
@@ -30,10 +31,10 @@ func main() {
 			test(s, jsonDBConfiguration{}, os.Args[3])
 		}
 	case "migrate":
-		if l != 4 {
+		if l != 5 {
 			usage()
 		} else {
-			migrate(s, os.Args[3])
+			migrate(s, os.Args[3], os.Args[4])
 		}
 	}
 }
@@ -56,11 +57,19 @@ func buildDB(s settings, dbConfiguration dBConfiguration) *dB {
 	return db
 }
 
-func migrate(s settings, sourceFolder string) {
+func migrate(s settings, sourceFolder string, aesKeyFile string) {
+	key, err := crypto.LoadAesGcmKey(aesKeyFile)
+	if err != nil {
+		panic(err)
+	}
+	aes, err := crypto.NewAesGcm(key)
+	if err != nil {
+		panic(err)
+	}
 	destFolder := s.DataFolderPath
 	s.DataFolderPath = sourceFolder
 	db := buildDB(s, jsonDBConfiguration{})
-	err := db.saveTo(destFolder, binaryDBConfiguration{})
+	err = db.saveTo(destFolder, newBinaryDBConfiguration(aes))
 	if err != nil {
 		panic(err)
 	}

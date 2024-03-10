@@ -3,6 +3,7 @@ package main
 import (
 	"HomeAccountingDB/src/entities"
 	"TimeSeriesData/core"
+	"io"
 	"strconv"
 	"strings"
 )
@@ -45,24 +46,34 @@ type binaryDBConfiguration struct {
 	processor core.CryptoProcessor
 }
 
+func newBinaryDBConfiguration(processor core.CryptoProcessor) binaryDBConfiguration {
+	return binaryDBConfiguration{processor: processor}
+}
+
 func (b binaryDBConfiguration) GetAccounts(fileName string) ([]entities.Account, error) {
-	return core.LoadBinary[[]entities.Account](fileName, b.processor, entities.NewAccounts)
+	return core.LoadBinary[[]entities.Account](fileName, b.processor, func(reader io.Reader) ([]entities.Account, error) {
+		return core.NewBinaryData[entities.Account](reader, entities.NewAccountFromBinary)
+	})
 }
 
 func (b binaryDBConfiguration) GetCategories(fileName string) ([]entities.Category, error) {
-	return core.LoadBinary[[]entities.Category](fileName, b.processor, entities.NewCategories)
+	return core.LoadBinary[[]entities.Category](fileName, b.processor, func(reader io.Reader) ([]entities.Category, error) {
+		return core.NewBinaryData[entities.Category](reader, entities.NewCategoryFromBinary)
+	})
 }
 
 func (b binaryDBConfiguration) GetSubcategories(fileName string) ([]entities.Subcategory, error) {
-	return core.LoadBinary[[]entities.Subcategory](fileName, b.processor, entities.NewSubcategories)
+	return core.LoadBinary[[]entities.Subcategory](fileName, b.processor, func(reader io.Reader) ([]entities.Subcategory, error) {
+		return core.NewBinaryData[entities.Subcategory](reader, entities.NewSubcategoryFromBinary)
+	})
 }
 
 func (b binaryDBConfiguration) GetMainDataSource() core.DatedSource[entities.FinanceRecord] {
 	return &binaryDatedSource{}
 }
 
-func (b binaryDBConfiguration) GetAccountsSaver() core.DataSaver[entities.Accounts] {
-	return core.BinarySaver[entities.Accounts]{}
+func (b binaryDBConfiguration) GetAccountsSaver() core.DataSaver[[]entities.Account] {
+	return core.BinarySaver[[]entities.Account]{}
 }
 
 func (b binaryDBConfiguration) GetCategoriesSaver() core.DataSaver[[]entities.Category] {

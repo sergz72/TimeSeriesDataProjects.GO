@@ -19,7 +19,7 @@ type dBConfiguration interface {
 	GetCategories(fileName string) ([]entities.Category, error)
 	GetSubcategories(fileName string) ([]entities.Subcategory, error)
 	GetMainDataSource() core.DatedSource[entities.FinanceRecord]
-	GetAccountsSaver() core.DataSaver[entities.Accounts]
+	GetAccountsSaver() core.DataSaver[[]entities.Account]
 	GetCategoriesSaver() core.DataSaver[[]entities.Category]
 	GetSubcategoriesSaver() core.DataSaver[[]entities.Subcategory]
 }

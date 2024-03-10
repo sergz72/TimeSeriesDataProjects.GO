@@ -1,6 +1,8 @@
 package entities
 
 import (
+	"TimeSeriesData/core"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"io"
@@ -91,6 +93,26 @@ func (s Subcategory) GetId() int {
 	return s.Id
 }
 
-func NewSubcategories(reader io.Reader) ([]Subcategory, error) {
-	return nil, nil
+func (s Subcategory) Save(writer io.Writer) error {
+	err := binary.Write(writer, binary.BigEndian, uint32(s.Id))
+	if err != nil {
+		return err
+	}
+	err = core.WriteStringToBinary(writer, s.Name)
+	if err != nil {
+		return err
+	}
+	err = binary.Write(writer, binary.BigEndian, uint32(s.CategoryId))
+	if err != nil {
+		return err
+	}
+	err = binary.Write(writer, binary.BigEndian, uint8(s.Code))
+	if err != nil {
+		return err
+	}
+	return binary.Write(writer, binary.BigEndian, uint8(s.OperationCodeId))
+}
+
+func NewSubcategoryFromBinary(reader io.Reader) (Subcategory, error) {
+	return Subcategory{}, nil
 }
