@@ -2,9 +2,12 @@ package entities
 
 import (
 	"TimeSeriesData/core"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"math"
 )
 
 type FinOpPropertyCode int
@@ -184,4 +187,143 @@ func (op *FinanceOperation) handleTRFR(current *FinanceChange, changes map[int]*
 		}
 	}
 	return nil
+}
+
+func (prop *FinOpProperty) SaveToBinary(writer io.Writer) error {
+	var err error
+	if prop.NumericValue != nil {
+		err = binary.Write(writer, binary.BigEndian, int64(*prop.NumericValue))
+	} else {
+		err = binary.Write(writer, binary.BigEndian, int64(math.MaxInt64))
+	}
+	if err != nil {
+		return err
+	}
+	if prop.StringValue != nil {
+		err = core.WriteStringToBinary(writer, *prop.StringValue)
+	} else {
+		err = core.WriteStringToBinary(writer, "")
+	}
+	if err != nil {
+		return err
+	}
+	v := uint32(prop.DateValue)
+	err = binary.Write(writer, binary.BigEndian, v)
+	if err != nil {
+		return err
+	}
+	c := uint8(prop.PropertyCode)
+	return binary.Write(writer, binary.BigEndian, c)
+}
+
+func (op *FinanceOperation) SaveToBinary(writer io.Writer) error {
+	err := binary.Write(writer, binary.BigEndian, uint32(op.Date))
+	if err != nil {
+		return err
+	}
+	err = binary.Write(writer, binary.BigEndian, uint32(op.AccountId))
+	if err != nil {
+		return err
+	}
+	err = binary.Write(writer, binary.BigEndian, uint32(op.SubcategoryId))
+	if err != nil {
+		return err
+	}
+	err = binary.Write(writer, binary.BigEndian, int64(op.Summa))
+	if err != nil {
+		return err
+	}
+	var a int64 = math.MaxInt64
+	if op.Amount != nil {
+		a = int64(*op.Amount)
+	}
+	err = binary.Write(writer, binary.BigEndian, a)
+	if err != nil {
+		return err
+	}
+	err = binary.Write(writer, binary.BigEndian, uint32(len(op.FinOpProperties)))
+	if err != nil {
+		return err
+	}
+	for _, prop := range op.FinOpProperties {
+		err = prop.SaveToBinary(writer)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func NewFinOpPropertyFromBinary(reader io.Reader) (FinOpProperty, error) {
+	var prop FinOpProperty
+	var v64 int64
+	err := binary.Read(reader, binary.BigEndian, &v64)
+	if v64 != math.MaxInt64 {
+		v := int(v64)
+		prop.NumericValue = &v
+	}
+	var s string
+	s, err = core.ReadStringFromBinary(reader)
+	if len(s) != 0 {
+		prop.StringValue = &s
+	}
+	var d uint32
+	err = binary.Read(reader, binary.BigEndian, &d)
+	if err != nil {
+		return prop, err
+	}
+	prop.DateValue = Date(d)
+	var c uint8
+	err = binary.Read(reader, binary.BigEndian, &c)
+	if err != nil {
+		return prop, err
+	}
+	prop.PropertyCode = FinOpPropertyCode(c)
+	return prop, nil
+}
+
+func NewFinanceOperationFromBinary(reader io.Reader) (FinanceOperation, error) {
+	var op FinanceOperation
+	var v uint32
+	var v64 int64
+	err := binary.Read(reader, binary.BigEndian, &v)
+	if err != nil {
+		return op, err
+	}
+	op.Date = int(v)
+	err = binary.Read(reader, binary.BigEndian, &v)
+	if err != nil {
+		return op, err
+	}
+	op.AccountId = int(v)
+	err = binary.Read(reader, binary.BigEndian, &v)
+	if err != nil {
+		return op, err
+	}
+	op.SubcategoryId = int(v)
+	err = binary.Read(reader, binary.BigEndian, &v64)
+	if err != nil {
+		return op, err
+	}
+	op.Summa = Decimal(v64)
+	err = binary.Read(reader, binary.BigEndian, &v64)
+	if err != nil {
+		return op, err
+	}
+	if v64 != math.MaxInt64 {
+		var d = Decimal(v64)
+		op.Amount = &d
+	}
+	var ll uint32
+	err = binary.Read(reader, binary.BigEndian, &ll)
+	if err != nil {
+		return op, err
+	}
+	for ll > 0 {
+		var prop FinOpProperty
+		prop, err = NewFinOpPropertyFromBinary(reader)
+		op.FinOpProperties = append(op.FinOpProperties, prop)
+		ll--
+	}
+	return op, nil
 }

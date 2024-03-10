@@ -60,7 +60,10 @@ func migrate(s settings, sourceFolder string) {
 	destFolder := s.DataFolderPath
 	s.DataFolderPath = sourceFolder
 	db := buildDB(s, jsonDBConfiguration{})
-	db.saveTo(destFolder, binaryDBConfiguration{})
+	err := db.saveTo(destFolder, binaryDBConfiguration{})
+	if err != nil {
+		panic(err)
+	}
 }
 
 func test(s settings, dbConfiguration dBConfiguration, dateString string) {

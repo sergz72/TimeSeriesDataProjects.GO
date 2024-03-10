@@ -7,7 +7,7 @@ type DataSource[T any] interface {
 }
 
 type DataSaver[T any] interface {
-	Save(data *T, fileName string) error
+	Save(data T, fileName string) error
 }
 
 type Identifiable interface {
@@ -41,7 +41,7 @@ func (d *DictionaryData[T]) SaveTo(saver DataSaver[[]T], fileName string) error 
 	for _, v := range d.data {
 		list = append(list, v)
 	}
-	return saver.Save(&list, fileName)
+	return saver.Save(list, fileName)
 }
 
 func (d *DictionaryData[T]) Save(saver DataSaver[[]T]) error {

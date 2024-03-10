@@ -16,10 +16,12 @@ type BinaryData interface {
 	Save(writer io.Writer) error
 }
 
-func CreateFromBinary[T any](data io.Reader) (T, error){
-	var object T
-	err := binary.Read(data, binary.BigEndian, &object)
-	return object, err
+type BinarySaver[T BinaryData] struct {
+	processor CryptoProcessor
+}
+
+func (b BinarySaver[T]) Save(data T, fileName string) error {
+	return SaveBinary(fileName, b.processor, data)
 }
 
 func LoadBinary[T any](fileName string, processor CryptoProcessor,
@@ -68,4 +70,30 @@ func SaveBinary(fileName string, processor CryptoProcessor, object BinaryData) e
 		}
 	}
 	return os.WriteFile(fileName, data, 0644)
+}
+
+func ReadStringFromBinary(reader io.Reader) (string, error) {
+	var l uint16
+	err := binary.Read(reader, binary.BigEndian, &l)
+	if err != nil || l == 0 {
+		return "", err
+	}
+	b := make([]byte, int(l))
+	err = binary.Read(reader, binary.BigEndian, &b)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func WriteStringToBinary(writer io.Writer, value string) error {
+	var l uint16 = uint16(len(value))
+	err := binary.Write(writer, binary.BigEndian, l)
+	if err != nil {
+		return err
+	}
+	if l > 0 {
+		return binary.Write(writer, binary.BigEndian, []byte(value))
+	}
+	return nil
 }

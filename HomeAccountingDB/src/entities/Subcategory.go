@@ -3,6 +3,7 @@ package entities
 import (
 	"encoding/json"
 	"errors"
+	"io"
 )
 
 type SubcategoryCode int
@@ -88,4 +89,8 @@ type Subcategory struct {
 
 func (s Subcategory) GetId() int {
 	return s.Id
+}
+
+func NewSubcategories(reader io.Reader) ([]Subcategory, error) {
+	return nil, nil
 }

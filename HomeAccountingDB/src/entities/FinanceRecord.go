@@ -2,6 +2,7 @@ package entities
 
 import (
 	"TimeSeriesData/core"
+	"encoding/binary"
 	"io"
 )
 
@@ -89,10 +90,67 @@ func (r *FinanceRecord) BuildOpsAndChanges(date int, accounts core.DictionaryDat
 }
 
 func (r *FinanceRecord) Save(writer io.Writer) error {
-	//TODO implement me
-	panic("implement me")
+	err := binary.Write(writer, binary.BigEndian, uint32(len(r.operations)))
+	if err != nil {
+		return err
+	}
+	for _, op := range r.operations {
+		err = op.SaveToBinary(writer)
+		if err != nil {
+			return err
+		}
+	}
+	err = binary.Write(writer, binary.BigEndian, uint32(len(r.totals)))
+	if err != nil {
+		return err
+	}
+	for k, v := range r.totals {
+		err = binary.Write(writer, binary.BigEndian, uint32(k))
+		if err != nil {
+			return err
+		}
+		err = binary.Write(writer, binary.BigEndian, int64(v))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func NewFinanceRecordFromBinary(reader io.Reader) (*FinanceRecord, error) {
-	return nil, nil
+	var r FinanceRecord
+	var l uint32
+	err := binary.Read(reader, binary.BigEndian, &l)
+	if err != nil {
+		return nil, err
+	}
+	for l > 0 {
+		var op FinanceOperation
+		op, err = NewFinanceOperationFromBinary(reader)
+		if err != nil {
+			return nil, err
+		}
+		r.operations = append(r.operations, op)
+		l--
+	}
+	err = binary.Read(reader, binary.BigEndian, &l)
+	if err != nil {
+		return nil, err
+	}
+	r.totals = make(map[int]int)
+	for l > 0 {
+		var k uint32
+		err = binary.Read(reader, binary.BigEndian, &k)
+		if err != nil {
+			return nil, err
+		}
+		var v int64
+		err = binary.Read(reader, binary.BigEndian, &v)
+		if err != nil {
+			return nil, err
+		}
+		r.totals[int(k)] = int(v)
+		l--
+	}
+	return &r, nil
 }

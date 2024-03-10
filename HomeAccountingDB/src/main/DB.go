@@ -19,7 +19,7 @@ type dBConfiguration interface {
 	GetCategories(fileName string) ([]entities.Category, error)
 	GetSubcategories(fileName string) ([]entities.Subcategory, error)
 	GetMainDataSource() core.DatedSource[entities.FinanceRecord]
-	GetAccountsSaver() core.DataSaver[[]entities.Account]
+	GetAccountsSaver() core.DataSaver[entities.Accounts]
 	GetCategoriesSaver() core.DataSaver[[]entities.Category]
 	GetSubcategoriesSaver() core.DataSaver[[]entities.Subcategory]
 }
@@ -45,9 +45,13 @@ func getSubcategoriesFileName(dataFolderPath string) string {
 	return dataFolderPath + "/subcategories"
 }
 
+func getMainDataFolderPath(dataFolderPath string) string {
+	return dataFolderPath + "/dates"
+}
+
 func loadDB(s settings, configuration dBConfiguration) (*dB, error) {
 	path := getAccountsFileName(s.DataFolderPath)
-	alist, err := configuration.GetAccounts()
+	alist, err := configuration.GetAccounts(path)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +68,7 @@ func loadDB(s settings, configuration dBConfiguration) (*dB, error) {
 		return nil, err
 	}
 	subcategories := core.NewDictionaryData[entities.Subcategory](path, "subcategory", slist)
-	data, err := core.LoadTimeSeriesData[entities.FinanceRecord](s.DataFolderPath+"/dates",
+	data, err := core.LoadTimeSeriesData[entities.FinanceRecord](getMainDataFolderPath(s.DataFolderPath),
 		configuration.GetMainDataSource(), s.TimeSeriesDataCapacity, func(date int) int {
 			date /= 100
 			year := date / 100
@@ -145,4 +149,6 @@ func (d *dB) saveTo(dataFolderPath string, configuration dBConfiguration) error 
 	if err != nil {
 		return err
 	}
+	err = d.data.SaveAll(configuration.GetMainDataSource(), getMainDataFolderPath(dataFolderPath))
+	return nil
 }

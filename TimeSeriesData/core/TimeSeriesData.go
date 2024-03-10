@@ -10,8 +10,8 @@ type FileWithDate struct {
 type DatedSource[T any] interface {
 	GetFileDate(fileName string, folderName string) (int, error)
 	Load(files []FileWithDate) (*T, error)
-	GetFiles(date int) ([]FileWithDate, error)
-	Save(date int, data *T) error
+	GetFiles(date int, dataFolderPath string) ([]FileWithDate, error)
+	Save(date int, data *T, dataFolderPath string) error
 }
 
 type TimeSeriesDataRange[T any] struct {
@@ -202,7 +202,7 @@ func (t *TimeSeriesData[T]) get(item *LruItem[T]) (*T, error) {
 		return nil, err
 	}
 	date := t.DateCalculator(item.Key)
-	files, err := t.source.GetFiles(date)
+	files, err := t.source.GetFiles(date, t.dataFolderPath)
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +231,7 @@ func (t *TimeSeriesData[T]) removeByLru() error {
 	tail := t.lruManager.GetTail()
 	if t.modified[tail.Key] {
 		date := t.DateCalculator(tail.Key)
-		err := t.source.Save(date, tail.Data)
+		err := t.source.Save(date, tail.Data, t.dataFolderPath)
 		if err != nil {
 			return err
 		}
@@ -239,5 +239,17 @@ func (t *TimeSeriesData[T]) removeByLru() error {
 	}
 	tail.Data = nil
 	t.lruManager.Detach(tail)
+	return nil
+}
+
+func (t *TimeSeriesData[T]) SaveAll(source DatedSource[T], dataFolderPath string) error {
+	for i := 0; i <= t.maxIndex; i++ {
+		d := t.data[i]
+		if d != nil && d.Data != nil {
+			date := t.DateCalculator(i)
+			source.Save(date, d.Data, dataFolderPath)
+			delete(t.modified, i)
+		}
+	}
 	return nil
 }

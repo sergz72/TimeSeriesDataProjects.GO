@@ -28,11 +28,11 @@ func (s jsonDatedSource) Load(files []core.FileWithDate) (*entities.FinanceRecor
 	return entities.NewFinanceRecord(operations), nil
 }
 
-func (s jsonDatedSource) GetFiles(date int) ([]core.FileWithDate, error) {
+func (s jsonDatedSource) GetFiles(date int, dataFolderPath string) ([]core.FileWithDate, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (s jsonDatedSource) Save(date int, data *entities.FinanceRecord) error {
+func (s jsonDatedSource) Save(date int, data *entities.FinanceRecord, dataFolderPath string) error {
 	return errors.New("not implemented")
 }
 

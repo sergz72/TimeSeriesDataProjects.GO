@@ -8,8 +8,7 @@ import (
 )
 
 type binaryDatedSource struct {
-	dataFolderPath string
-	processor      core.CryptoProcessor
+	processor core.CryptoProcessor
 }
 
 func fileNameWithoutExtension(fileName string) string {
@@ -19,7 +18,7 @@ func fileNameWithoutExtension(fileName string) string {
 	return fileName
 }
 
-func (b *binaryDatedSource) GetFileDate(fileName string, folderName string) (int, error) {
+func (b *binaryDatedSource) GetFileDate(fileName string, _ string) (int, error) {
 	return strconv.Atoi(fileNameWithoutExtension(fileName))
 }
 
@@ -27,19 +26,19 @@ func (b *binaryDatedSource) Load(files []core.FileWithDate) (*entities.FinanceRe
 	return core.LoadBinaryP[entities.FinanceRecord](files[0].FileName, b.processor, entities.NewFinanceRecordFromBinary)
 }
 
-func (b *binaryDatedSource) getFileName(date int) string {
-	return b.dataFolderPath + "/" + strconv.Itoa(date) + ".bin"
+func (b *binaryDatedSource) getFileName(date int, dataFolderPath string) string {
+	return dataFolderPath + "/" + strconv.Itoa(date) + ".bin"
 }
 
-func (b *binaryDatedSource) GetFiles(date int) ([]core.FileWithDate, error) {
+func (b *binaryDatedSource) GetFiles(date int, dataFolderPath string) ([]core.FileWithDate, error) {
 	return []core.FileWithDate{{
-		FileName: b.getFileName(date),
+		FileName: b.getFileName(date, dataFolderPath),
 		Date:     date,
 	}}, nil
 }
 
-func (b *binaryDatedSource) Save(date int, data *entities.FinanceRecord) error {
-	return core.SaveBinary(b.getFileName(date), b.processor, data)
+func (b *binaryDatedSource) Save(date int, data *entities.FinanceRecord, dataFolderPath string) error {
+	return core.SaveBinary(b.getFileName(date, dataFolderPath), b.processor, data)
 }
 
 type binaryDBConfiguration struct {
@@ -47,32 +46,29 @@ type binaryDBConfiguration struct {
 }
 
 func (b binaryDBConfiguration) GetAccounts(fileName string) ([]entities.Account, error) {
-	return core.LoadBinary[[]entities.Account](fileName, b.processor, core.CreateFromBinary[[]entities.Account])
+	return core.LoadBinary[[]entities.Account](fileName, b.processor, entities.NewAccounts)
 }
 
 func (b binaryDBConfiguration) GetCategories(fileName string) ([]entities.Category, error) {
-	return core.LoadBinary[[]entities.Category](fileName, b.processor, core.CreateFromBinary[[]entities.Category])
+	return core.LoadBinary[[]entities.Category](fileName, b.processor, entities.NewCategories)
 }
 
 func (b binaryDBConfiguration) GetSubcategories(fileName string) ([]entities.Subcategory, error) {
-	return core.LoadBinary[[]entities.Subcategory](fileName, b.processor, core.CreateFromBinary[[]entities.Subcategory])
+	return core.LoadBinary[[]entities.Subcategory](fileName, b.processor, entities.NewSubcategories)
 }
 
 func (b binaryDBConfiguration) GetMainDataSource() core.DatedSource[entities.FinanceRecord] {
 	return &binaryDatedSource{}
 }
 
-func (b binaryDBConfiguration) GetAccountsSaver() core.DataSaver[[]entities.Account] {
-	//TODO implement me
-	panic("implement me")
+func (b binaryDBConfiguration) GetAccountsSaver() core.DataSaver[entities.Accounts] {
+	return core.BinarySaver[entities.Accounts]{}
 }
 
 func (b binaryDBConfiguration) GetCategoriesSaver() core.DataSaver[[]entities.Category] {
-	//TODO implement me
-	panic("implement me")
+	return core.BinarySaver[[]entities.Category]{}
 }
 
 func (b binaryDBConfiguration) GetSubcategoriesSaver() core.DataSaver[[]entities.Subcategory] {
-	//TODO implement me
-	panic("implement me")
+	return core.BinarySaver[[]entities.Subcategory]{}
 }

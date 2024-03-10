@@ -1,6 +1,9 @@
 package entities
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"io"
+)
 
 type Int int
 
@@ -32,4 +35,14 @@ func (a Account) GetId() int {
 
 func (a *Account) GetName() string {
 	return a.Name
+}
+
+func NewAccounts(reader io.Reader) ([]Account, error) {
+	return nil, nil
+}
+
+type Accounts []Account
+
+func (a Accounts) Save(writer io.Writer) error {
+	return nil
 }
