@@ -127,18 +127,23 @@ func initDB(s settings, configuration dBConfiguration) (*dB, error) {
 }
 
 func (d *dB) buildTotals(from int) error {
-	m, err := d.data.GetRange(from, 99999999)
+	i, err := d.data.Iterator(from, 99999999)
 	if err != nil {
 		return err
 	}
 	var changes map[int]*entities.FinanceChange
-	for _, v := range m {
-		if changes == nil {
-			changes = v.Data.BuildChanges()
-		} else {
-			v.Data.SetTotals(changes)
+	for i.HasNext() {
+		idx, v, err := i.Next()
+		if err != nil {
+			return err
 		}
-		err = v.Data.UpdateChanges(changes, d.accounts, d.subcategories, 0, 99999999)
+		if changes == nil {
+			changes = v.BuildChanges()
+		} else {
+			v.SetTotals(changes)
+			d.data.MarkAsModified(idx)
+		}
+		err = v.UpdateChanges(changes, d.accounts, d.subcategories, 0, 99999999)
 		if err != nil {
 			return err
 		}

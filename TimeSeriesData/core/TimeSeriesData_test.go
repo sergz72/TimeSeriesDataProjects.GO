@@ -30,7 +30,7 @@ func TestLruList(t *testing.T) {
 	data := NewTimeSeriesData[testData]("", testDatedSource{}, 500,
 		func(date int) int { return date }, func(date int) int { return date }, 500)
 	for i := 0; i < 3; i++ {
-		data.Add(i, &testData{})
+		_ = data.Add(i, &testData{})
 	}
 	if data.lruManager.head.Key != 2 {
 		t.Fatal("head should be 2")
@@ -105,5 +105,53 @@ func TestLruExpireAndMoveToFront(t *testing.T) {
 	}
 	if data.lruManager.head.next.Key != 999 {
 		t.Fatal("head next key should be 999")
+	}
+}
+
+func TestIterator(t *testing.T) {
+	data := NewTimeSeriesData[testData]("", testDatedSource{}, 500,
+		func(date int) int { return date }, func(date int) int { return date }, 500)
+	for i := 1; i <= 5; i += 2 {
+		_ = data.Add(i, &testData{})
+	}
+	iter, err := data.Iterator(1, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !iter.HasNext() {
+		t.Fatal("HasNext1")
+	}
+	idx, _, err := iter.Next()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if idx != 1 {
+		t.Fatal("Next1")
+	}
+
+	if !iter.HasNext() {
+		t.Fatal("HasNext3")
+	}
+	idx, _, err = iter.Next()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if idx != 3 {
+		t.Fatal("Next3")
+	}
+
+	if !iter.HasNext() {
+		t.Fatal("HasNext5")
+	}
+	idx, _, err = iter.Next()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if idx != 5 {
+		t.Fatal("Next5")
+	}
+
+	if iter.HasNext() {
+		t.Fatal("HasNext7")
 	}
 }

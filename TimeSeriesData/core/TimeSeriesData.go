@@ -14,11 +14,6 @@ type DatedSource[T any] interface {
 	Save(date int, data *T, dataFolderPath string) error
 }
 
-type TimeSeriesDataRange[T any] struct {
-	Idx  int
-	Data *T
-}
-
 type TimeSeriesData[T any] struct {
 	dataFolderPath  string
 	source          DatedSource[T]
@@ -151,29 +146,6 @@ func (t *TimeSeriesData[T]) getFileList(folder string) ([]FileWithDate, error) {
 	return result, nil
 }
 
-func (t *TimeSeriesData[T]) GetRange(from int, to int) ([]TimeSeriesDataRange[T], error) {
-	idx1 := t.IndexCalculator(from)
-	if idx1 < 0 {
-		idx1 = 0
-	}
-	idx2 := t.IndexCalculator(to)
-	var result []TimeSeriesDataRange[T]
-	for i := idx1; i <= idx2; i++ {
-		if i > t.maxIndex {
-			break
-		}
-		d := t.data[i]
-		if d != nil {
-			item, err := t.get(d)
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, TimeSeriesDataRange[T]{i, item})
-		}
-	}
-	return result, nil
-}
-
 func (t *TimeSeriesData[T]) Get(date int) (int, *T, error) {
 	idx := t.IndexCalculator(date)
 	if idx < 0 {
@@ -190,6 +162,18 @@ func (t *TimeSeriesData[T]) Get(date int) (int, *T, error) {
 		}
 	}
 	return idx, nil, nil
+}
+
+func (t *TimeSeriesData[T]) GetExact(date int) (*T, error) {
+	idx := t.IndexCalculator(date)
+	if idx < 0 || idx > t.maxIndex {
+		return nil, nil
+	}
+	d := t.data[idx]
+	if d != nil {
+		return t.get(d)
+	}
+	return nil, nil
 }
 
 func (t *TimeSeriesData[T]) get(item *LruItem[T]) (*T, error) {
@@ -242,14 +226,88 @@ func (t *TimeSeriesData[T]) removeByLru() error {
 	return nil
 }
 
+func (t *TimeSeriesData[T]) saveIndex(index int, source DatedSource[T], dataFolderPath string) error {
+	d := t.data[index]
+	if d != nil && d.Data != nil {
+		date := t.DateCalculator(index)
+		err := source.Save(date, d.Data, dataFolderPath)
+		if err != nil {
+			return err
+		}
+		delete(t.modified, index)
+	}
+	return nil
+}
+
 func (t *TimeSeriesData[T]) SaveAll(source DatedSource[T], dataFolderPath string) error {
 	for i := 0; i <= t.maxIndex; i++ {
-		d := t.data[i]
-		if d != nil && d.Data != nil {
-			date := t.DateCalculator(i)
-			source.Save(date, d.Data, dataFolderPath)
-			delete(t.modified, i)
+		err := t.saveIndex(i, source, dataFolderPath)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
+}
+
+func (t *TimeSeriesData[T]) Save() error {
+	var toDelete []int
+	for idx, _ := range t.modified {
+		toDelete = append(toDelete, idx)
+	}
+	for _, idx := range toDelete {
+		err := t.saveIndex(idx, t.source, t.dataFolderPath)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type TimeSeriesDataIterator[T any] struct {
+	data        *TimeSeriesData[T]
+	current     int
+	to          int
+	currentData *T
+}
+
+func (i *TimeSeriesDataIterator[T]) HasNext() bool {
+	return i.current <= i.to
+}
+
+func (i *TimeSeriesDataIterator[T]) seekToNext() error {
+	i.current++
+	for i.current <= i.to {
+		d := i.data.data[i.current]
+		if d != nil {
+			var err error
+			i.currentData, err = i.data.get(d)
+			return err
+		}
+		i.current++
+	}
+	return nil
+}
+
+func (i *TimeSeriesDataIterator[T]) Next() (int, *T, error) {
+	next := i.current
+	data := i.currentData
+	return next, data, i.seekToNext()
+}
+
+func (t *TimeSeriesData[T]) Iterator(from, to int) (*TimeSeriesDataIterator[T], error) {
+	idx1 := t.IndexCalculator(from)
+	if idx1 < 0 {
+		idx1 = 0
+	}
+	idx2 := t.IndexCalculator(to)
+	if idx2 > t.maxIndex {
+		idx2 = t.maxIndex
+	}
+	i := TimeSeriesDataIterator[T]{t, idx1 - 1, idx2, nil}
+	err := i.seekToNext()
+	return &i, err
+}
+
+func (t *TimeSeriesData[T]) MarkAsModified(idx int) {
+	t.modified[idx] = true
 }
