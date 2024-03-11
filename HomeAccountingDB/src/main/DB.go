@@ -12,6 +12,7 @@ type settings struct {
 	TimeSeriesDataCapacity int
 	DataFolderPath         string
 	ServerPort             int
+	Key                    string
 }
 
 type dBConfiguration interface {
@@ -49,35 +50,74 @@ func getMainDataFolderPath(dataFolderPath string) string {
 	return dataFolderPath + "/dates"
 }
 
-func loadDB(s settings, configuration dBConfiguration) (*dB, error) {
+func indexCalculator(date int, minYear int, minMonth int) int {
+	date /= 100
+	year := date / 100
+	month := date % 100
+	return month - minMonth + (year-minYear)*12
+}
+
+func dateCalculator(idx int, minYear int, minMonth int) int {
+	month := idx + minMonth - 1
+	year := minYear + month/12
+	month = (month % 12) + 1
+	return year*100 + month
+}
+
+func loadDicts(s settings, configuration dBConfiguration) (core.DictionaryData[entities.Account],
+	core.DictionaryData[entities.Category], core.DictionaryData[entities.Subcategory], error) {
 	path := getAccountsFileName(s.DataFolderPath)
 	alist, err := configuration.GetAccounts(path)
 	if err != nil {
-		return nil, err
+		return core.DictionaryData[entities.Account]{}, core.DictionaryData[entities.Category]{},
+			core.DictionaryData[entities.Subcategory]{}, err
 	}
 	accounts := core.NewDictionaryData[entities.Account](path, "account", alist)
 	path = getCategoriesFileName(s.DataFolderPath)
 	clist, err := configuration.GetCategories(path)
 	if err != nil {
-		return nil, err
+		return core.DictionaryData[entities.Account]{}, core.DictionaryData[entities.Category]{},
+			core.DictionaryData[entities.Subcategory]{}, err
 	}
 	categories := core.NewDictionaryData[entities.Category](path, "category", clist)
 	path = getSubcategoriesFileName(s.DataFolderPath)
 	slist, err := configuration.GetSubcategories(path)
 	if err != nil {
-		return nil, err
+		return core.DictionaryData[entities.Account]{}, core.DictionaryData[entities.Category]{},
+			core.DictionaryData[entities.Subcategory]{}, err
 	}
 	subcategories := core.NewDictionaryData[entities.Subcategory](path, "subcategory", slist)
+	return accounts, categories, subcategories, nil
+}
+
+func loadDB(s settings, configuration dBConfiguration) (*dB, error) {
+	accounts, categories, subcategories, err := loadDicts(s, configuration)
+	if err != nil {
+		return nil, err
+	}
 	data, err := core.LoadTimeSeriesData[entities.FinanceRecord](getMainDataFolderPath(s.DataFolderPath),
 		configuration.GetMainDataSource(), s.TimeSeriesDataCapacity, func(date int) int {
-			date /= 100
-			year := date / 100
-			month := date % 100
-			return month - s.MinMonth + (year-s.MinYear)*12
+			return indexCalculator(date, s.MinYear, s.MinMonth)
 		}, func(idx int) int {
-			month := idx + s.MinMonth
-			year := s.MinYear + month/12
-			return year*100 + (month % 12)
+			return dateCalculator(idx, s.MinYear, s.MinMonth)
+		}, 1000000)
+	if err != nil {
+		return nil, err
+	}
+	return &dB{dataFolderPath: s.DataFolderPath, configuration: configuration, accounts: accounts,
+		categories: categories, subcategories: subcategories, data: data}, nil
+}
+
+func initDB(s settings, configuration dBConfiguration) (*dB, error) {
+	accounts, categories, subcategories, err := loadDicts(s, configuration)
+	if err != nil {
+		return nil, err
+	}
+	data, err := core.InitTimeSeriesData[entities.FinanceRecord](getMainDataFolderPath(s.DataFolderPath),
+		configuration.GetMainDataSource(), s.TimeSeriesDataCapacity, func(date int) int {
+			return indexCalculator(date, s.MinYear, s.MinMonth)
+		}, func(idx int) int {
+			return dateCalculator(idx, s.MinYear, s.MinMonth)
 		}, 1000000)
 	if err != nil {
 		return nil, err
@@ -137,15 +177,15 @@ func (d *dB) save() error {
 }
 
 func (d *dB) saveTo(dataFolderPath string, configuration dBConfiguration) error {
-	err := d.accounts.SaveTo(configuration.GetAccountsSaver(), getAccountsFileName(dataFolderPath))
+	err := d.accounts.SaveTo(configuration.GetAccountsSaver(), getAccountsFileName(dataFolderPath), entities.SaveAccountByIndex)
 	if err != nil {
 		return err
 	}
-	err = d.categories.SaveTo(configuration.GetCategoriesSaver(), getCategoriesFileName(dataFolderPath))
+	err = d.categories.SaveTo(configuration.GetCategoriesSaver(), getCategoriesFileName(dataFolderPath), entities.SaveCategoryByIndex)
 	if err != nil {
 		return err
 	}
-	err = d.subcategories.SaveTo(configuration.GetSubcategoriesSaver(), getSubcategoriesFileName(dataFolderPath))
+	err = d.subcategories.SaveTo(configuration.GetSubcategoriesSaver(), getSubcategoriesFileName(dataFolderPath), entities.SaveSubcategoryByIndex)
 	if err != nil {
 		return err
 	}

@@ -1,13 +1,16 @@
 package core
 
-import "errors"
+import (
+	"errors"
+	"io"
+)
 
 type DataSource[T any] interface {
 	Load(fileName string) (T, error)
 }
 
 type DataSaver[T any] interface {
-	Save(data T, fileName string) error
+	Save(data T, fileName string, saveIndex func(int, T, io.Writer) error) error
 }
 
 type Identifiable interface {
@@ -36,14 +39,14 @@ func (d *DictionaryData[T]) Get(idx int) (*T, error) {
 	return &v, nil
 }
 
-func (d *DictionaryData[T]) SaveTo(saver DataSaver[[]T], fileName string) error {
+func (d *DictionaryData[T]) SaveTo(saver DataSaver[[]T], fileName string, saveIndex func(int, []T, io.Writer) error) error {
 	var list []T
 	for _, v := range d.data {
 		list = append(list, v)
 	}
-	return saver.Save(list, fileName)
+	return saver.Save(list, fileName, saveIndex)
 }
 
-func (d *DictionaryData[T]) Save(saver DataSaver[[]T]) error {
-	return d.SaveTo(saver, d.fileName)
+func (d *DictionaryData[T]) Save(saver DataSaver[[]T], saveIndex func(int, []T, io.Writer) error) error {
+	return d.SaveTo(saver, d.fileName, saveIndex)
 }

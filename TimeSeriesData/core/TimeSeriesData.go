@@ -98,7 +98,7 @@ func InitTimeSeriesData[T any](
 		indexes[idx] = true
 	}
 	for idx := range indexes {
-		data.set(idx, &LruItem[T]{})
+		data.set(idx, NewLruItem[T](idx))
 	}
 	return data, nil
 }

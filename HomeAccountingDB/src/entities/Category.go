@@ -33,3 +33,7 @@ func NewCategoryFromBinary(reader io.Reader) (Category, error) {
 	name, err = core.ReadStringFromBinary(reader)
 	return Category{int(id), name}, err
 }
+
+func SaveCategoryByIndex(index int, value []Category, writer io.Writer) error {
+	return value[index].Save(writer)
+}

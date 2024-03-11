@@ -10,12 +10,12 @@ import (
 )
 
 func usage() {
-	fmt.Println("Usage: HomeAccountingDB2 config_file_name\n  test_json date\n  migrate source_folder aes_key_file")
+	fmt.Println("Usage: HomeAccountingDB2 config_file_name\n  test_json date\n  test date\n  migrate source_folder")
 }
 
 func main() {
 	l := len(os.Args)
-	if l < 3 || l > 5 {
+	if l < 3 || l > 4 {
 		usage()
 		return
 	}
@@ -28,13 +28,19 @@ func main() {
 		if l != 4 {
 			usage()
 		} else {
-			test(s, jsonDBConfiguration{}, os.Args[3])
+			testJson(s, os.Args[3])
 		}
-	case "migrate":
-		if l != 5 {
+	case "test":
+		if l != 4 {
 			usage()
 		} else {
-			migrate(s, os.Args[3], os.Args[4])
+			testBinary(s, os.Args[3])
+		}
+	case "migrate":
+		if l != 4 {
+			usage()
+		} else {
+			migrate(s, os.Args[3])
 		}
 	}
 }
@@ -57,8 +63,19 @@ func buildDB(s settings, dbConfiguration dBConfiguration) *dB {
 	return db
 }
 
-func migrate(s settings, sourceFolder string, aesKeyFile string) {
-	key, err := crypto.LoadAesGcmKey(aesKeyFile)
+func initDatabase(s settings, dbConfiguration dBConfiguration) *dB {
+	fmt.Println("Initializing database...")
+	start := time.Now()
+	db, err := initDB(s, dbConfiguration)
+	fmt.Printf("%v elapsed.\n", time.Since(start))
+	if err != nil {
+		panic(err)
+	}
+	return db
+}
+
+func buildBinaryDbConfiguration(aesKeyFileName string) dBConfiguration {
+	key, err := crypto.LoadAesKey(aesKeyFileName)
 	if err != nil {
 		panic(err)
 	}
@@ -66,20 +83,33 @@ func migrate(s settings, sourceFolder string, aesKeyFile string) {
 	if err != nil {
 		panic(err)
 	}
+	return newBinaryDBConfiguration(aes)
+}
+
+func migrate(s settings, sourceFolder string) {
 	destFolder := s.DataFolderPath
 	s.DataFolderPath = sourceFolder
 	db := buildDB(s, jsonDBConfiguration{})
-	err = db.saveTo(destFolder, newBinaryDBConfiguration(aes))
+	err := db.saveTo(destFolder, buildBinaryDbConfiguration(s.Key))
 	if err != nil {
 		panic(err)
 	}
 }
 
-func test(s settings, dbConfiguration dBConfiguration, dateString string) {
+func testJson(s settings, dateString string) {
 	date, err := strconv.Atoi(dateString)
 	if err != nil {
 		panic(err)
 	}
-	db := buildDB(s, dbConfiguration)
+	db := buildDB(s, jsonDBConfiguration{})
+	db.printChanges(date)
+}
+
+func testBinary(s settings, dateString string) {
+	date, err := strconv.Atoi(dateString)
+	if err != nil {
+		panic(err)
+	}
+	db := initDatabase(s, buildBinaryDbConfiguration(s.Key))
 	db.printChanges(date)
 }

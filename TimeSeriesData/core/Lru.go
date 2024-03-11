@@ -7,6 +7,10 @@ type LruItem[T any] struct {
 	prev *LruItem[T]
 }
 
+func NewLruItem[T any](key int) *LruItem[T] {
+	return &LruItem[T]{Key: key}
+}
+
 type LruManager[T any] struct {
 	head        *LruItem[T]
 	tail        *LruItem[T]

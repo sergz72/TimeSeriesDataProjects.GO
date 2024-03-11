@@ -24,12 +24,13 @@ func newTestBinaryData(reader io.Reader) (testBinaryData, error) {
 }
 
 func TestBinarySaver(t *testing.T) {
-	data, err := BinarySaver[testBinaryData]{}.buildBytes(testBinaryData{1})
+	source := testBinaryData{1}
+	data, err := BinarySaver[testBinaryData]{}.buildBytes(source, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	data2, err := LoadBinaryData[testBinaryData](data, nil, newTestBinaryData)
-	if reflect.DeepEqual(data, data2) {
+	loaded, err := LoadBinaryData[testBinaryData](data, nil, newTestBinaryData)
+	if !reflect.DeepEqual(source, loaded) {
 		t.Fatal("different data")
 	}
 	key := make([]byte, 32)
@@ -42,12 +43,50 @@ func TestBinarySaver(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err = NewBinarySaver[testBinaryData](processor).buildBytes(testBinaryData{1})
+	data, err = NewBinarySaver[testBinaryData](processor).buildBytes(source, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	data2, err = LoadBinaryData[testBinaryData](data, processor, newTestBinaryData)
-	if reflect.DeepEqual(data, data2) {
+	loaded, err = LoadBinaryData[testBinaryData](data, processor, newTestBinaryData)
+	if !reflect.DeepEqual(source, loaded) {
+		t.Fatal("different data2")
+	}
+}
+
+func saveIndex(index int, value []testBinaryData, writer io.Writer) error {
+	return value[index].Save(writer)
+}
+
+func TestBinarySaverArray(t *testing.T) {
+	source := []testBinaryData{{1}, {2}, {3}}
+	data, err := BinarySaver[[]testBinaryData]{}.buildBytes(source, saveIndex)
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := LoadBinaryData[[]testBinaryData](data, nil, func(reader io.Reader) ([]testBinaryData, error) {
+		return LoadBinaryArray(reader, newTestBinaryData)
+	})
+	if len(loaded) != 3 || loaded[0].Id != 1 || loaded[1].Id != 2 || loaded[2].Id != 3 {
+		t.Fatal("different data")
+	}
+	key := make([]byte, 32)
+	_, err = rand.Read(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	processor, err := crypto.NewAesGcm(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data, err = NewBinarySaver[[]testBinaryData](processor).buildBytes(source, saveIndex)
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, err = LoadBinaryData[[]testBinaryData](data, processor, func(reader io.Reader) ([]testBinaryData, error) {
+		return LoadBinaryArray(reader, newTestBinaryData)
+	})
+	if len(loaded) != 3 || loaded[0].Id != 1 || loaded[1].Id != 2 || loaded[2].Id != 3 {
 		t.Fatal("different data2")
 	}
 }

@@ -142,3 +142,7 @@ func NewSubcategoryFromBinary(reader io.Reader) (Subcategory, error) {
 	return Subcategory{Id: int(id), Name: name, CategoryId: int(categoryId), Code: SubcategoryCode(code),
 		OperationCodeId: SubcategoryOperationCode(operationCode)}, nil
 }
+
+func SaveSubcategoryByIndex(index int, value []Subcategory, writer io.Writer) error {
+	return value[index].Save(writer)
+}

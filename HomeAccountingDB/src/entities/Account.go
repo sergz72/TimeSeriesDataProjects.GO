@@ -84,3 +84,7 @@ func NewAccountFromBinary(reader io.Reader) (Account, error) {
 	currency, err = core.ReadStringFromBinary(reader)
 	return Account{Id: int(id), Name: name, CashAccount: Int(cashAccount), ActiveTo: Date(activeTo), Currency: currency}, err
 }
+
+func SaveAccountByIndex(index int, value []Account, writer io.Writer) error {
+	return value[index].Save(writer)
+}

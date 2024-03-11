@@ -20,7 +20,8 @@ func fileNameWithoutExtension(fileName string) string {
 }
 
 func (b *binaryDatedSource) GetFileDate(fileName string, _ string) (int, error) {
-	return strconv.Atoi(fileNameWithoutExtension(fileName))
+	date, err := strconv.Atoi(fileNameWithoutExtension(fileName))
+	return date * 100, err
 }
 
 func (b *binaryDatedSource) Load(files []core.FileWithDate) (*entities.FinanceRecord, error) {
@@ -51,35 +52,35 @@ func newBinaryDBConfiguration(processor core.CryptoProcessor) binaryDBConfigurat
 }
 
 func (b binaryDBConfiguration) GetAccounts(fileName string) ([]entities.Account, error) {
-	return core.LoadBinary[[]entities.Account](fileName, b.processor, func(reader io.Reader) ([]entities.Account, error) {
-		return core.NewBinaryData[entities.Account](reader, entities.NewAccountFromBinary)
+	return core.LoadBinary[[]entities.Account](fileName+".bin", b.processor, func(reader io.Reader) ([]entities.Account, error) {
+		return core.LoadBinaryArray[entities.Account](reader, entities.NewAccountFromBinary)
 	})
 }
 
 func (b binaryDBConfiguration) GetCategories(fileName string) ([]entities.Category, error) {
-	return core.LoadBinary[[]entities.Category](fileName, b.processor, func(reader io.Reader) ([]entities.Category, error) {
-		return core.NewBinaryData[entities.Category](reader, entities.NewCategoryFromBinary)
+	return core.LoadBinary[[]entities.Category](fileName+".bin", b.processor, func(reader io.Reader) ([]entities.Category, error) {
+		return core.LoadBinaryArray[entities.Category](reader, entities.NewCategoryFromBinary)
 	})
 }
 
 func (b binaryDBConfiguration) GetSubcategories(fileName string) ([]entities.Subcategory, error) {
-	return core.LoadBinary[[]entities.Subcategory](fileName, b.processor, func(reader io.Reader) ([]entities.Subcategory, error) {
-		return core.NewBinaryData[entities.Subcategory](reader, entities.NewSubcategoryFromBinary)
+	return core.LoadBinary[[]entities.Subcategory](fileName+".bin", b.processor, func(reader io.Reader) ([]entities.Subcategory, error) {
+		return core.LoadBinaryArray[entities.Subcategory](reader, entities.NewSubcategoryFromBinary)
 	})
 }
 
 func (b binaryDBConfiguration) GetMainDataSource() core.DatedSource[entities.FinanceRecord] {
-	return &binaryDatedSource{}
+	return &binaryDatedSource{b.processor}
 }
 
 func (b binaryDBConfiguration) GetAccountsSaver() core.DataSaver[[]entities.Account] {
-	return core.BinarySaver[[]entities.Account]{}
+	return core.NewBinarySaver[[]entities.Account](b.processor)
 }
 
 func (b binaryDBConfiguration) GetCategoriesSaver() core.DataSaver[[]entities.Category] {
-	return core.BinarySaver[[]entities.Category]{}
+	return core.NewBinarySaver[[]entities.Category](b.processor)
 }
 
 func (b binaryDBConfiguration) GetSubcategoriesSaver() core.DataSaver[[]entities.Subcategory] {
-	return core.BinarySaver[[]entities.Subcategory]{}
+	return core.NewBinarySaver[[]entities.Subcategory](b.processor)
 }

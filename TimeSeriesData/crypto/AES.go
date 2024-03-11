@@ -38,12 +38,12 @@ func NewAesGcm(key []byte) (AESGcm, error) {
 	return AESGcm{aesgcm: aesgcm}, nil
 }
 
-func LoadAesGcmKey(fileName string) ([]byte, error) {
+func LoadAesKey(fileName string) ([]byte, error) {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}
-	if len(data) != 12 {
+	if len(data) != 32 {
 		return nil, errors.New("wrong file size")
 	}
 	return data, nil
