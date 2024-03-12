@@ -28,9 +28,9 @@ func (t testDatedSource) Save(date int, data *testData, dataFolderPath string) e
 
 func TestLruList(t *testing.T) {
 	data := NewTimeSeriesData[testData]("", testDatedSource{}, 500,
-		func(date int) int { return date }, func(date int) int { return date }, 500)
+		func(date int) int { return date }, 500)
 	for i := 0; i < 3; i++ {
-		_ = data.Add(i, &testData{})
+		_ = data.Add(i, i, &testData{})
 	}
 	if data.lruManager.head.Key != 2 {
 		t.Fatal("head should be 2")
@@ -61,9 +61,9 @@ func TestLruList(t *testing.T) {
 
 func TestLruExpireAndMoveToFront(t *testing.T) {
 	data := NewTimeSeriesData[testData]("", testDatedSource{}, 2000,
-		func(date int) int { return date }, func(date int) int { return date }, 500)
+		func(date int) int { return date }, 500)
 	for i := 0; i < 1000; i++ {
-		err := data.Add(i, &testData{})
+		err := data.Add(i, i, &testData{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -110,9 +110,9 @@ func TestLruExpireAndMoveToFront(t *testing.T) {
 
 func TestIterator(t *testing.T) {
 	data := NewTimeSeriesData[testData]("", testDatedSource{}, 500,
-		func(date int) int { return date }, func(date int) int { return date }, 500)
+		func(date int) int { return date }, 500)
 	for i := 1; i <= 5; i += 2 {
-		_ = data.Add(i, &testData{})
+		_ = data.Add(i, i, &testData{})
 	}
 	iter, err := data.Iterator(1, 10)
 	if err != nil {

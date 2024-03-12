@@ -57,13 +57,6 @@ func indexCalculator(date int, minYear int, minMonth int) int {
 	return month - minMonth + (year-minYear)*12
 }
 
-func dateCalculator(idx int, minYear int, minMonth int) int {
-	month := idx + minMonth - 1
-	year := minYear + month/12
-	month = (month % 12) + 1
-	return year*100 + month
-}
-
 func loadDicts(s settings, configuration dBConfiguration) (core.DictionaryData[entities.Account],
 	core.DictionaryData[entities.Category], core.DictionaryData[entities.Subcategory], error) {
 	path := getAccountsFileName(s.DataFolderPath)
@@ -98,8 +91,8 @@ func loadDB(s settings, configuration dBConfiguration) (*dB, error) {
 	data, err := core.LoadTimeSeriesData[entities.FinanceRecord](getMainDataFolderPath(s.DataFolderPath),
 		configuration.GetMainDataSource(), s.TimeSeriesDataCapacity, func(date int) int {
 			return indexCalculator(date, s.MinYear, s.MinMonth)
-		}, func(idx int) int {
-			return dateCalculator(idx, s.MinYear, s.MinMonth)
+		}, func(date int) int {
+			return date / 100
 		}, 1000000)
 	if err != nil {
 		return nil, err
@@ -116,8 +109,8 @@ func initDB(s settings, configuration dBConfiguration) (*dB, error) {
 	data, err := core.InitTimeSeriesData[entities.FinanceRecord](getMainDataFolderPath(s.DataFolderPath),
 		configuration.GetMainDataSource(), s.TimeSeriesDataCapacity, func(date int) int {
 			return indexCalculator(date, s.MinYear, s.MinMonth)
-		}, func(idx int) int {
-			return dateCalculator(idx, s.MinYear, s.MinMonth)
+		}, func(date int) int {
+			return date / 100
 		}, 1000000)
 	if err != nil {
 		return nil, err
@@ -162,7 +155,7 @@ func (d *dB) printChanges(date int) {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(d.data.DateCalculator(key))
+		fmt.Println(d.data.GetDate(key))
 		for acc, ch := range result.Changes {
 			var account *entities.Account
 			account, err = d.accounts.Get(acc)
@@ -194,6 +187,5 @@ func (d *dB) saveTo(dataFolderPath string, configuration dBConfiguration) error 
 	if err != nil {
 		return err
 	}
-	err = d.data.SaveAll(configuration.GetMainDataSource(), getMainDataFolderPath(dataFolderPath))
-	return nil
+	return d.data.SaveAll(configuration.GetMainDataSource(), getMainDataFolderPath(dataFolderPath))
 }

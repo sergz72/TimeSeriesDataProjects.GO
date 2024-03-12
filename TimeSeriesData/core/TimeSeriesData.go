@@ -15,15 +15,17 @@ type DatedSource[T any] interface {
 }
 
 type TimeSeriesData[T any] struct {
-	dataFolderPath  string
-	source          DatedSource[T]
+	dataFolderPath string
+	source         DatedSource[T]
+	// calculates array index from file date
 	IndexCalculator func(int) int
-	DateCalculator  func(int) int
-	data            []*LruItem[T]
-	maxIndex        int
-	maxActiveItems  int
-	lruManager      LruManager[T]
-	modified        map[int]bool
+	// calculates file date from date yyyymmdd
+	DateCalculator func(int) int
+	data           []*LruItem[T]
+	maxIndex       int
+	maxActiveItems int
+	lruManager     LruManager[T]
+	modified       map[int]bool
 }
 
 func NewTimeSeriesData[T any](
@@ -67,7 +69,8 @@ func LoadTimeSeriesData[T any](
 		if err != nil {
 			return data, err
 		}
-		err = data.Add(k, item)
+		date := dateCalculator(v[0].Date)
+		err = data.Add(k, date, item)
 		if err != nil {
 			return data, err
 		}
@@ -87,13 +90,14 @@ func InitTimeSeriesData[T any](
 	if err != nil {
 		return data, err
 	}
-	indexes := make(map[int]bool)
+	indexes := make(map[int]int)
 	for _, f := range files {
 		idx := indexCalculator(f.Date)
-		indexes[idx] = true
+		date := dateCalculator(f.Date)
+		indexes[idx] = date
 	}
-	for idx := range indexes {
-		data.set(idx, NewLruItem[T](idx))
+	for idx, date := range indexes {
+		data.set(idx, NewLruItem[T](idx, date))
 	}
 	return data, nil
 }
@@ -105,12 +109,12 @@ func (t *TimeSeriesData[T]) set(k int, item *LruItem[T]) {
 	t.data[k] = item
 }
 
-func (t *TimeSeriesData[T]) Add(k int, item *T) error {
+func (t *TimeSeriesData[T]) Add(k, date int, item *T) error {
 	err := t.cleanup()
 	if err != nil {
 		return err
 	}
-	t.set(k, t.lruManager.Add(k, item))
+	t.set(k, t.lruManager.Add(k, date, item))
 	return nil
 }
 
@@ -185,8 +189,7 @@ func (t *TimeSeriesData[T]) get(item *LruItem[T]) (*T, error) {
 	if err != nil {
 		return nil, err
 	}
-	date := t.DateCalculator(item.Key)
-	files, err := t.source.GetFiles(date, t.dataFolderPath)
+	files, err := t.source.GetFiles(item.Date, t.dataFolderPath)
 	if err != nil {
 		return nil, err
 	}
@@ -214,8 +217,7 @@ func (t *TimeSeriesData[T]) cleanup() error {
 func (t *TimeSeriesData[T]) removeByLru() error {
 	tail := t.lruManager.GetTail()
 	if t.modified[tail.Key] {
-		date := t.DateCalculator(tail.Key)
-		err := t.source.Save(date, tail.Data, t.dataFolderPath)
+		err := t.source.Save(tail.Date, tail.Data, t.dataFolderPath)
 		if err != nil {
 			return err
 		}
@@ -229,8 +231,7 @@ func (t *TimeSeriesData[T]) removeByLru() error {
 func (t *TimeSeriesData[T]) saveIndex(index int, source DatedSource[T], dataFolderPath string) error {
 	d := t.data[index]
 	if d != nil && d.Data != nil {
-		date := t.DateCalculator(index)
-		err := source.Save(date, d.Data, dataFolderPath)
+		err := source.Save(d.Date, d.Data, dataFolderPath)
 		if err != nil {
 			return err
 		}
@@ -251,7 +252,7 @@ func (t *TimeSeriesData[T]) SaveAll(source DatedSource[T], dataFolderPath string
 
 func (t *TimeSeriesData[T]) Save() error {
 	var toDelete []int
-	for idx, _ := range t.modified {
+	for idx := range t.modified {
 		toDelete = append(toDelete, idx)
 	}
 	for _, idx := range toDelete {
@@ -310,4 +311,8 @@ func (t *TimeSeriesData[T]) Iterator(from, to int) (*TimeSeriesDataIterator[T], 
 
 func (t *TimeSeriesData[T]) MarkAsModified(idx int) {
 	t.modified[idx] = true
+}
+
+func (t *TimeSeriesData[T]) GetDate(key int) int {
+	return t.data[key].Date
 }

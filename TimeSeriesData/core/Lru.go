@@ -3,12 +3,13 @@ package core
 type LruItem[T any] struct {
 	Data *T
 	Key  int
+	Date int
 	next *LruItem[T]
 	prev *LruItem[T]
 }
 
-func NewLruItem[T any](key int) *LruItem[T] {
-	return &LruItem[T]{Key: key}
+func NewLruItem[T any](key, date int) *LruItem[T] {
+	return &LruItem[T]{Key: key, Date: date}
 }
 
 type LruManager[T any] struct {
@@ -17,8 +18,8 @@ type LruManager[T any] struct {
 	activeItems int
 }
 
-func (m *LruManager[T]) Add(key int, data *T) *LruItem[T] {
-	i := &LruItem[T]{data, key, nil, m.head}
+func (m *LruManager[T]) Add(key, date int, data *T) *LruItem[T] {
+	i := &LruItem[T]{data, key, date, nil, m.head}
 	m.Attach(i)
 	return i
 }
