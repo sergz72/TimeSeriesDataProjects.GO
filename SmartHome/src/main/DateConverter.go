@@ -154,6 +154,7 @@ func buildYears(minYear, minMonth, yearsToCreate int) []yearData {
 			daysFromStart += 365
 		}
 		result = append(result, y)
+		year++
 		yearsToCreate--
 	}
 	return result

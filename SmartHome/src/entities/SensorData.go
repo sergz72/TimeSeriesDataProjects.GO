@@ -1,6 +1,9 @@
 package entities
 
-import "io"
+import (
+	"fmt"
+	"io"
+)
 
 type SensorDataItem struct {
 	EventTime int
@@ -18,6 +21,12 @@ type SensorDataStats struct {
 type SensorData struct {
 	data  map[int][]SensorDataItem
 	stats map[int]SensorDataStats
+}
+
+func (s *SensorData) PrintStats() {
+	for k, v := range s.data {
+		fmt.Printf("%v %v\n", k, len(v))
+	}
 }
 
 func (s SensorData) Save(writer io.Writer) error {

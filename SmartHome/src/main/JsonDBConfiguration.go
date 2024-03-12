@@ -14,7 +14,7 @@ func (s jsonDatedSource) GetFileDate(_ string, folderName string) (int, error) {
 }
 
 func (s jsonDatedSource) Load(files []core.FileWithDate) (*entities.SensorData, error) {
-	var data map[int][]entities.SensorDataItem
+	data := make(map[int][]entities.SensorDataItem)
 	for _, f := range files {
 		sensorId, err := strconv.Atoi(fileNameWithoutExtension(f.FileName))
 		if err != nil {

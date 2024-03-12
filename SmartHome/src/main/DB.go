@@ -66,11 +66,11 @@ func loadDB(s settings, configuration dBConfiguration) (*dB, error) {
 		return nil, err
 	}
 	converter := newDateConverter(s.MinYear, s.MinMonth, s.YearsToCreate)
-	data, err := core.LoadTimeSeriesData[entities.SensorData](getMainDataFolderPath(s.DataFolderPath),
+	data, err := core.LoadTimeSeriesData[entities.SensorData](s.DataFolderPath+"/dates_new",
 		configuration.GetMainDataSource(), s.TimeSeriesDataCapacity, func(date int) int {
 			return converter.fromDate(date)
-		}, func(idx int) int {
-			return converter.toDate(idx)
+		}, func(date int) int {
+			return date
 		}, s.MaxActiveTimeSeriesItems)
 	if err != nil {
 		return nil, err
@@ -88,8 +88,8 @@ func initDB(s settings, configuration dBConfiguration) (*dB, error) {
 	data, err := core.InitTimeSeriesData[entities.SensorData](getMainDataFolderPath(s.DataFolderPath),
 		configuration.GetMainDataSource(), s.TimeSeriesDataCapacity, func(date int) int {
 			return converter.fromDate(date)
-		}, func(idx int) int {
-			return converter.toDate(idx)
+		}, func(date int) int {
+			return date
 		}, s.MaxActiveTimeSeriesItems)
 	if err != nil {
 		return nil, err
@@ -104,7 +104,7 @@ func (d *dB) printStats(date int) {
 		panic(err)
 	}
 	if v != nil {
-		panic("not implemented yet")
+		v.PrintStats()
 	} else {
 		fmt.Println("no data")
 	}
