@@ -1,0 +1,8 @@
+{
+  "minYear": 2012,
+  "minMonth": 6,
+  "timeSeriesDataCapacity": 1000,
+  "dataFolderPath": "data",
+  "serverPort": 60010,
+  "key": "key.dat"
+}

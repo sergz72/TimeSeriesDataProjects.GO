@@ -1,0 +1,9 @@
+{
+  "minYear": 2019,
+  "minMonth": 3,
+  "timeSeriesDataCapacity": 40000,
+  "maxActiveTimeSeriesItems": 3000,
+  "yearsToCreate": 100,
+  "dataFolderPath": "data",
+  "serverPort": 60010
+}
