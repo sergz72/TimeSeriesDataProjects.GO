@@ -40,7 +40,7 @@ func (a *Account) GetName() string {
 }
 
 func (a Account) Save(writer io.Writer) error {
-	err := binary.Write(writer, binary.BigEndian, uint32(a.Id))
+	err := binary.Write(writer, binary.LittleEndian, uint32(a.Id))
 	if err != nil {
 		return err
 	}
@@ -48,11 +48,11 @@ func (a Account) Save(writer io.Writer) error {
 	if err != nil {
 		return err
 	}
-	err = binary.Write(writer, binary.BigEndian, int32(a.CashAccount))
+	err = binary.Write(writer, binary.LittleEndian, int32(a.CashAccount))
 	if err != nil {
 		return err
 	}
-	err = binary.Write(writer, binary.BigEndian, uint32(a.ActiveTo))
+	err = binary.Write(writer, binary.LittleEndian, uint32(a.ActiveTo))
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func (a Account) Save(writer io.Writer) error {
 
 func NewAccountFromBinary(reader io.Reader) (Account, error) {
 	var id uint32
-	err := binary.Read(reader, binary.BigEndian, &id)
+	err := binary.Read(reader, binary.LittleEndian, &id)
 	if err != nil {
 		return Account{}, nil
 	}
@@ -71,12 +71,12 @@ func NewAccountFromBinary(reader io.Reader) (Account, error) {
 		return Account{}, nil
 	}
 	var cashAccount int32
-	err = binary.Read(reader, binary.BigEndian, &cashAccount)
+	err = binary.Read(reader, binary.LittleEndian, &cashAccount)
 	if err != nil {
 		return Account{}, nil
 	}
 	var activeTo uint32
-	err = binary.Read(reader, binary.BigEndian, &activeTo)
+	err = binary.Read(reader, binary.LittleEndian, &activeTo)
 	if err != nil {
 		return Account{}, nil
 	}

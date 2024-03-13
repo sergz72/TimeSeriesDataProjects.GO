@@ -14,12 +14,12 @@ type testBinaryData struct {
 }
 
 func (t testBinaryData) Save(writer io.Writer) error {
-	return binary.Write(writer, binary.BigEndian, uint32(t.Id))
+	return binary.Write(writer, binary.LittleEndian, uint32(t.Id))
 }
 
 func newTestBinaryData(reader io.Reader) (testBinaryData, error) {
 	var id uint32
-	err := binary.Read(reader, binary.BigEndian, &id)
+	err := binary.Read(reader, binary.LittleEndian, &id)
 	return testBinaryData{int(id)}, err
 }
 

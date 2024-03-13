@@ -94,7 +94,7 @@ func (s Subcategory) GetId() int {
 }
 
 func (s Subcategory) Save(writer io.Writer) error {
-	err := binary.Write(writer, binary.BigEndian, uint32(s.Id))
+	err := binary.Write(writer, binary.LittleEndian, uint32(s.Id))
 	if err != nil {
 		return err
 	}
@@ -102,20 +102,20 @@ func (s Subcategory) Save(writer io.Writer) error {
 	if err != nil {
 		return err
 	}
-	err = binary.Write(writer, binary.BigEndian, uint32(s.CategoryId))
+	err = binary.Write(writer, binary.LittleEndian, uint32(s.CategoryId))
 	if err != nil {
 		return err
 	}
-	err = binary.Write(writer, binary.BigEndian, uint8(s.Code))
+	err = binary.Write(writer, binary.LittleEndian, uint8(s.Code))
 	if err != nil {
 		return err
 	}
-	return binary.Write(writer, binary.BigEndian, uint8(s.OperationCodeId))
+	return binary.Write(writer, binary.LittleEndian, uint8(s.OperationCodeId))
 }
 
 func NewSubcategoryFromBinary(reader io.Reader) (Subcategory, error) {
 	var id uint32
-	err := binary.Read(reader, binary.BigEndian, &id)
+	err := binary.Read(reader, binary.LittleEndian, &id)
 	if err != nil {
 		return Subcategory{}, nil
 	}
@@ -125,17 +125,17 @@ func NewSubcategoryFromBinary(reader io.Reader) (Subcategory, error) {
 		return Subcategory{}, nil
 	}
 	var categoryId uint32
-	err = binary.Read(reader, binary.BigEndian, &categoryId)
+	err = binary.Read(reader, binary.LittleEndian, &categoryId)
 	if err != nil {
 		return Subcategory{}, nil
 	}
 	var code uint8
-	err = binary.Read(reader, binary.BigEndian, &code)
+	err = binary.Read(reader, binary.LittleEndian, &code)
 	if err != nil {
 		return Subcategory{}, nil
 	}
 	var operationCode uint8
-	err = binary.Read(reader, binary.BigEndian, &operationCode)
+	err = binary.Read(reader, binary.LittleEndian, &operationCode)
 	if err != nil {
 		return Subcategory{}, nil
 	}

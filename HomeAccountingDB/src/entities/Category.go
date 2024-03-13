@@ -16,7 +16,7 @@ func (c Category) GetId() int {
 }
 
 func (c Category) Save(writer io.Writer) error {
-	err := binary.Write(writer, binary.BigEndian, uint32(c.Id))
+	err := binary.Write(writer, binary.LittleEndian, uint32(c.Id))
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func (c Category) Save(writer io.Writer) error {
 
 func NewCategoryFromBinary(reader io.Reader) (Category, error) {
 	var id uint32
-	err := binary.Read(reader, binary.BigEndian, &id)
+	err := binary.Read(reader, binary.LittleEndian, &id)
 	if err != nil {
 		return Category{}, nil
 	}

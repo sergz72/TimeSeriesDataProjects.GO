@@ -28,19 +28,22 @@ func (b *binaryDatedSource) Load(files []core.FileWithDate) (*entities.SensorDat
 	return core.LoadBinaryP[entities.SensorData](files[0].FileName, nil, entities.NewSensorDataFromBinary)
 }
 
-func (b *binaryDatedSource) getFileName(date int, dataFolderPath string) string {
-	return dataFolderPath + "/" + strconv.Itoa(date) + ".bin"
+func (b *binaryDatedSource) getFileName(date int, year string, dataFolderPath string) string {
+	return dataFolderPath + "/" + year + "/" + strconv.Itoa(date) + ".bin"
 }
 
 func (b *binaryDatedSource) GetFiles(date int, dataFolderPath string) ([]core.FileWithDate, error) {
+	year := strconv.Itoa(date / 10000)
 	return []core.FileWithDate{{
-		FileName: b.getFileName(date, dataFolderPath),
+		FileName: b.getFileName(date, year, dataFolderPath),
 		Date:     date,
 	}}, nil
 }
 
 func (b *binaryDatedSource) Save(date int, data *entities.SensorData, dataFolderPath string) error {
-	return core.SaveBinary(b.getFileName(date, dataFolderPath), nil, data)
+	year := strconv.Itoa(date / 10000)
+	_ = os.Mkdir(dataFolderPath+"/"+year, 0700)
+	return core.SaveBinary(b.getFileName(date, year, dataFolderPath), nil, data)
 }
 
 type binaryDBConfiguration struct {

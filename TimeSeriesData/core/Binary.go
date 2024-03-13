@@ -31,7 +31,7 @@ func (b BinarySaver[T]) Save(data T, fileName string, saveIndex func(int, T, io.
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(fileName + ".bin", result, 0644)
+	return os.WriteFile(fileName+".bin", result, 0644)
 }
 
 func (b BinarySaver[T]) buildBytes(data T, saveIndex func(int, T, io.Writer) error) ([]byte, error) {
@@ -43,7 +43,7 @@ func (b BinarySaver[T]) buildBytes(data T, saveIndex func(int, T, io.Writer) err
 	if t.Kind() == reflect.Array || t.Kind() == reflect.Slice {
 		l := t.Len()
 		buffer := new(bytes.Buffer)
-		err := binary.Write(buffer, binary.BigEndian, uint16(l))
+		err := binary.Write(buffer, binary.LittleEndian, uint16(l))
 		if err != nil {
 			return nil, err
 		}
@@ -60,7 +60,7 @@ func (b BinarySaver[T]) buildBytes(data T, saveIndex func(int, T, io.Writer) err
 
 func LoadBinaryArray[T any](reader io.Reader, creator func(reader io.Reader) (T, error)) ([]T, error) {
 	var l uint16
-	err := binary.Read(reader, binary.BigEndian, &l)
+	err := binary.Read(reader, binary.LittleEndian, &l)
 	if err != nil {
 		return nil, err
 	}
@@ -159,12 +159,12 @@ func SaveBinary(fileName string, processor CryptoProcessor, object BinaryData) e
 
 func ReadStringFromBinary(reader io.Reader) (string, error) {
 	var l uint16
-	err := binary.Read(reader, binary.BigEndian, &l)
+	err := binary.Read(reader, binary.LittleEndian, &l)
 	if err != nil || l == 0 {
 		return "", err
 	}
 	b := make([]byte, int(l))
-	err = binary.Read(reader, binary.BigEndian, &b)
+	err = binary.Read(reader, binary.LittleEndian, &b)
 	if err != nil {
 		return "", err
 	}
@@ -173,12 +173,12 @@ func ReadStringFromBinary(reader io.Reader) (string, error) {
 
 func WriteStringToBinary(writer io.Writer, value string) error {
 	var l uint16 = uint16(len(value))
-	err := binary.Write(writer, binary.BigEndian, l)
+	err := binary.Write(writer, binary.LittleEndian, l)
 	if err != nil {
 		return err
 	}
 	if l > 0 {
-		return binary.Write(writer, binary.BigEndian, []byte(value))
+		return binary.Write(writer, binary.LittleEndian, []byte(value))
 	}
 	return nil
 }

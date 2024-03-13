@@ -24,12 +24,7 @@ func (s jsonDatedSource) Load(files []core.FileWithDate) (*entities.SensorData, 
 		if err != nil {
 			return nil, err
 		}
-		sensorData, ok := data[sensorId]
-		if ok {
-			data[sensorId] = append(sensorData, items...)
-		} else {
-			data[sensorId] = items
-		}
+		data[sensorId] = items
 	}
 	return entities.NewSensorData(data), nil
 }

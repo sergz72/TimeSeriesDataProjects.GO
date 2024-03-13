@@ -192,9 +192,9 @@ func (op *FinanceOperation) handleTRFR(current *FinanceChange, changes map[int]*
 func (prop *FinOpProperty) SaveToBinary(writer io.Writer) error {
 	var err error
 	if prop.NumericValue != nil {
-		err = binary.Write(writer, binary.BigEndian, int64(*prop.NumericValue))
+		err = binary.Write(writer, binary.LittleEndian, int64(*prop.NumericValue))
 	} else {
-		err = binary.Write(writer, binary.BigEndian, int64(math.MaxInt64))
+		err = binary.Write(writer, binary.LittleEndian, int64(math.MaxInt64))
 	}
 	if err != nil {
 		return err
@@ -208,28 +208,28 @@ func (prop *FinOpProperty) SaveToBinary(writer io.Writer) error {
 		return err
 	}
 	v := uint32(prop.DateValue)
-	err = binary.Write(writer, binary.BigEndian, v)
+	err = binary.Write(writer, binary.LittleEndian, v)
 	if err != nil {
 		return err
 	}
 	c := uint8(prop.PropertyCode)
-	return binary.Write(writer, binary.BigEndian, c)
+	return binary.Write(writer, binary.LittleEndian, c)
 }
 
 func (op *FinanceOperation) SaveToBinary(writer io.Writer) error {
-	err := binary.Write(writer, binary.BigEndian, uint32(op.Date))
+	err := binary.Write(writer, binary.LittleEndian, uint32(op.Date))
 	if err != nil {
 		return err
 	}
-	err = binary.Write(writer, binary.BigEndian, uint32(op.AccountId))
+	err = binary.Write(writer, binary.LittleEndian, uint32(op.AccountId))
 	if err != nil {
 		return err
 	}
-	err = binary.Write(writer, binary.BigEndian, uint32(op.SubcategoryId))
+	err = binary.Write(writer, binary.LittleEndian, uint32(op.SubcategoryId))
 	if err != nil {
 		return err
 	}
-	err = binary.Write(writer, binary.BigEndian, int64(op.Summa))
+	err = binary.Write(writer, binary.LittleEndian, int64(op.Summa))
 	if err != nil {
 		return err
 	}
@@ -237,11 +237,11 @@ func (op *FinanceOperation) SaveToBinary(writer io.Writer) error {
 	if op.Amount != nil {
 		a = int64(*op.Amount)
 	}
-	err = binary.Write(writer, binary.BigEndian, a)
+	err = binary.Write(writer, binary.LittleEndian, a)
 	if err != nil {
 		return err
 	}
-	err = binary.Write(writer, binary.BigEndian, uint32(len(op.FinOpProperties)))
+	err = binary.Write(writer, binary.LittleEndian, uint32(len(op.FinOpProperties)))
 	if err != nil {
 		return err
 	}
@@ -257,7 +257,7 @@ func (op *FinanceOperation) SaveToBinary(writer io.Writer) error {
 func NewFinOpPropertyFromBinary(reader io.Reader) (FinOpProperty, error) {
 	var prop FinOpProperty
 	var v64 int64
-	err := binary.Read(reader, binary.BigEndian, &v64)
+	err := binary.Read(reader, binary.LittleEndian, &v64)
 	if v64 != math.MaxInt64 {
 		v := int(v64)
 		prop.NumericValue = &v
@@ -268,13 +268,13 @@ func NewFinOpPropertyFromBinary(reader io.Reader) (FinOpProperty, error) {
 		prop.StringValue = &s
 	}
 	var d uint32
-	err = binary.Read(reader, binary.BigEndian, &d)
+	err = binary.Read(reader, binary.LittleEndian, &d)
 	if err != nil {
 		return prop, err
 	}
 	prop.DateValue = Date(d)
 	var c uint8
-	err = binary.Read(reader, binary.BigEndian, &c)
+	err = binary.Read(reader, binary.LittleEndian, &c)
 	if err != nil {
 		return prop, err
 	}
@@ -286,27 +286,27 @@ func NewFinanceOperationFromBinary(reader io.Reader) (FinanceOperation, error) {
 	var op FinanceOperation
 	var v uint32
 	var v64 int64
-	err := binary.Read(reader, binary.BigEndian, &v)
+	err := binary.Read(reader, binary.LittleEndian, &v)
 	if err != nil {
 		return op, err
 	}
 	op.Date = int(v)
-	err = binary.Read(reader, binary.BigEndian, &v)
+	err = binary.Read(reader, binary.LittleEndian, &v)
 	if err != nil {
 		return op, err
 	}
 	op.AccountId = int(v)
-	err = binary.Read(reader, binary.BigEndian, &v)
+	err = binary.Read(reader, binary.LittleEndian, &v)
 	if err != nil {
 		return op, err
 	}
 	op.SubcategoryId = int(v)
-	err = binary.Read(reader, binary.BigEndian, &v64)
+	err = binary.Read(reader, binary.LittleEndian, &v64)
 	if err != nil {
 		return op, err
 	}
 	op.Summa = Decimal(v64)
-	err = binary.Read(reader, binary.BigEndian, &v64)
+	err = binary.Read(reader, binary.LittleEndian, &v64)
 	if err != nil {
 		return op, err
 	}
@@ -315,7 +315,7 @@ func NewFinanceOperationFromBinary(reader io.Reader) (FinanceOperation, error) {
 		op.Amount = &d
 	}
 	var ll uint32
-	err = binary.Read(reader, binary.BigEndian, &ll)
+	err = binary.Read(reader, binary.LittleEndian, &ll)
 	if err != nil {
 		return op, err
 	}

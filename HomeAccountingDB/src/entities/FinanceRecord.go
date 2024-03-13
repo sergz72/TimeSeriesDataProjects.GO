@@ -90,7 +90,7 @@ func (r *FinanceRecord) BuildOpsAndChanges(date int, accounts core.DictionaryDat
 }
 
 func (r *FinanceRecord) Save(writer io.Writer) error {
-	err := binary.Write(writer, binary.BigEndian, uint32(len(r.operations)))
+	err := binary.Write(writer, binary.LittleEndian, uint32(len(r.operations)))
 	if err != nil {
 		return err
 	}
@@ -100,16 +100,16 @@ func (r *FinanceRecord) Save(writer io.Writer) error {
 			return err
 		}
 	}
-	err = binary.Write(writer, binary.BigEndian, uint32(len(r.totals)))
+	err = binary.Write(writer, binary.LittleEndian, uint32(len(r.totals)))
 	if err != nil {
 		return err
 	}
 	for k, v := range r.totals {
-		err = binary.Write(writer, binary.BigEndian, uint32(k))
+		err = binary.Write(writer, binary.LittleEndian, uint32(k))
 		if err != nil {
 			return err
 		}
-		err = binary.Write(writer, binary.BigEndian, int64(v))
+		err = binary.Write(writer, binary.LittleEndian, int64(v))
 		if err != nil {
 			return err
 		}
@@ -120,7 +120,7 @@ func (r *FinanceRecord) Save(writer io.Writer) error {
 func NewFinanceRecordFromBinary(reader io.Reader) (*FinanceRecord, error) {
 	var r FinanceRecord
 	var l uint32
-	err := binary.Read(reader, binary.BigEndian, &l)
+	err := binary.Read(reader, binary.LittleEndian, &l)
 	if err != nil {
 		return nil, err
 	}
@@ -133,19 +133,19 @@ func NewFinanceRecordFromBinary(reader io.Reader) (*FinanceRecord, error) {
 		r.operations = append(r.operations, op)
 		l--
 	}
-	err = binary.Read(reader, binary.BigEndian, &l)
+	err = binary.Read(reader, binary.LittleEndian, &l)
 	if err != nil {
 		return nil, err
 	}
 	r.totals = make(map[int]int)
 	for l > 0 {
 		var k uint32
-		err = binary.Read(reader, binary.BigEndian, &k)
+		err = binary.Read(reader, binary.LittleEndian, &k)
 		if err != nil {
 			return nil, err
 		}
 		var v int64
-		err = binary.Read(reader, binary.BigEndian, &v)
+		err = binary.Read(reader, binary.LittleEndian, &v)
 		if err != nil {
 			return nil, err
 		}

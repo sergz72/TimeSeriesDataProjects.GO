@@ -41,6 +41,8 @@ func main() {
 		} else {
 			migrate(s, os.Args[3])
 		}
+	default:
+		usage()
 	}
 }
 
