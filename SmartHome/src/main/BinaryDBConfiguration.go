@@ -21,7 +21,7 @@ func fileNameWithoutExtension(fileName string) string {
 
 func (b *binaryDatedSource) GetFileDate(fileName string, _ string) (int, error) {
 	date, err := strconv.Atoi(fileNameWithoutExtension(fileName))
-	return date * 100, err
+	return date, err
 }
 
 func (b *binaryDatedSource) Load(files []core.FileWithDate) (*entities.SensorData, error) {
