@@ -18,6 +18,10 @@ func (a AESGcm) Encrypt(data []byte) []byte {
 	return append(nonce, a.aesgcm.Seal(nil, nonce, data, nil)...)
 }
 
+func (a AESGcm) EncryptWithNonce(data []byte, nonce []byte) []byte {
+	return a.aesgcm.Seal(nil, nonce, data, nil)
+}
+
 func (a AESGcm) Decrypt(data []byte) ([]byte, error) {
 	if len(data) <= 12 {
 		return nil, errors.New("wrong data size")
