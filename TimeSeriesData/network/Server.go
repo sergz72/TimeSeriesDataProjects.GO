@@ -107,10 +107,10 @@ func sendResponse(conn net.Conn, key []byte, nonce []byte, responseType uint8, r
 		return
 	}
 	response := append([]byte{responseType}, responseData...)
-	encrypted := aes.EncryptWithNonce(response, nonce)
 	sha := sha256.New()
-	hash := sha.Sum(encrypted)
-	_, err = conn.Write(append(encrypted, hash...))
+	hash := sha.Sum(response)
+	encrypted := aes.EncryptWithNonce(append(response, hash...), nonce)
+	_, err = conn.Write(encrypted)
 	if err != nil {
 		log.Printf("conn.Write error %v\n", err.Error())
 	}
