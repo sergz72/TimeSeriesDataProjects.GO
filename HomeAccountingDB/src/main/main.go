@@ -3,6 +3,7 @@ package main
 import (
 	"TimeSeriesData/core"
 	"TimeSeriesData/crypto"
+	"TimeSeriesData/network"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,12 +11,12 @@ import (
 )
 
 func usage() {
-	fmt.Println("Usage: HomeAccountingDB2 config_file_name\n  test_json date\n  test date\n  migrate source_folder")
+	fmt.Println("Usage: HomeAccountingDB2 config_file_name\n  test_json date\n  test date aes_key_file\n  migrate source_folder\n server")
 }
 
 func main() {
 	l := len(os.Args)
-	if l < 3 || l > 4 {
+	if l < 3 || l > 5 {
 		usage()
 		return
 	}
@@ -34,7 +35,7 @@ func main() {
 		if l != 4 {
 			usage()
 		} else {
-			testBinary(s, os.Args[3])
+			testBinary(s, os.Args[3], os.Args[4])
 		}
 	case "migrate":
 		if l != 4 {
@@ -42,6 +43,37 @@ func main() {
 		} else {
 			migrate(s, os.Args[3])
 		}
+	case "server":
+		if l != 3 {
+			usage()
+		} else {
+			startServer(s)
+		}
+	default:
+		usage()
+	}
+}
+
+type serverData struct {
+	db *dB
+}
+
+func (d *serverData) handle(request []byte) ([]byte, error) {
+	return nil, nil
+}
+
+func startServer(s settings) {
+	userData := serverData{}
+	server, err := network.NewTcpServer[serverData](s.ServerPort, s.Key, "HomeAccountingDB", userData,
+		func(request []byte, userData *serverData) ([]byte, error) {
+			return userData.handle(request)
+		})
+	if err != nil {
+		panic(err)
+	}
+	err = server.Start()
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -105,11 +137,11 @@ func testJson(s settings, dateString string) {
 	db.printChanges(date)
 }
 
-func testBinary(s settings, dateString string) {
+func testBinary(s settings, dateString string, aesKeyFile string) {
 	date, err := strconv.Atoi(dateString)
 	if err != nil {
 		panic(err)
 	}
-	db := initDatabase(s, buildBinaryDbConfiguration(s.Key))
+	db := initDatabase(s, buildBinaryDbConfiguration(aesKeyFile))
 	db.printChanges(date)
 }

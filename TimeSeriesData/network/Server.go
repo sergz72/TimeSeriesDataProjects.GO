@@ -23,27 +23,30 @@ const (
 	OK    uint8 = 0
 )
 
-type TcpServer struct {
-	port    int
-	key     *rsa.PrivateKey
-	label   []byte
-	handler func([]byte) ([]byte, error)
+type TcpServer[T any] struct {
+	port     int
+	key      *rsa.PrivateKey
+	label    []byte
+	handler  func([]byte, *T) ([]byte, error)
+	userData T
 }
 
-func NewTcpServer(port int, keyFileName string, label string, handler func([]byte) ([]byte, error)) (*TcpServer, error) {
+func NewTcpServer[T any](port int, keyFileName string, label string, userData T,
+	handler func([]byte, *T) ([]byte, error)) (*TcpServer[T], error) {
 	key, err := crypto.LoadRSAPrivateKey(keyFileName)
 	if err != nil {
 		return nil, err
 	}
-	return &TcpServer{
-		port:    port,
-		key:     key,
-		label:   []byte(label),
-		handler: handler,
+	return &TcpServer[T]{
+		port:     port,
+		key:      key,
+		label:    []byte(label),
+		handler:  handler,
+		userData: userData,
 	}, nil
 }
 
-func (s *TcpServer) Start() error {
+func (s *TcpServer[T]) Start() error {
 	addr := net.TCPAddr{Port: s.port}
 	l, err := net.ListenTCP("tcp", &addr)
 	if err != nil {
@@ -66,7 +69,7 @@ func logTcpRequest(addr net.Addr, prefix string) {
 	log.Printf("%v TCP request from address %s\n", prefix, addr.String())
 }
 
-func (s *TcpServer) handleTcp(conn net.Conn, l *net.TCPListener) {
+func (s *TcpServer[T]) handleTcp(conn net.Conn, l *net.TCPListener) {
 	defer func() { _ = conn.Close() }()
 	logTcpRequest(conn.RemoteAddr(), "[Start]")
 	buf := make([]byte, 1024)
@@ -85,7 +88,7 @@ func (s *TcpServer) handleTcp(conn net.Conn, l *net.TCPListener) {
 		_ = l.Close()
 		return
 	}
-	response, err := s.handler(decrypted[44:])
+	response, err := s.handler(decrypted[44:], &s.userData)
 	aesKey := decrypted[:32]
 	aesNonce := decrypted[32:44]
 	if err != nil {
