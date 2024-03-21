@@ -63,7 +63,7 @@ func (b binaryDBConfiguration) GetCategories(fileName string) ([]entities.Catego
 	})
 }
 
-func (b binaryDBConfiguration) GetSubcategories(fileName string) ([]entities.Subcategory, error) {
+func (b binaryDBConfiguration) GetSubcategories(fileName, mapFileName string) ([]entities.Subcategory, error) {
 	return core.LoadBinary[[]entities.Subcategory](fileName+".bin", b.processor, func(reader io.Reader) ([]entities.Subcategory, error) {
 		return core.LoadBinaryArray[entities.Subcategory](reader, entities.NewSubcategoryFromBinary)
 	})

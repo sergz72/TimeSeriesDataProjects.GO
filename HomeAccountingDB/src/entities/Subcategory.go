@@ -29,6 +29,29 @@ const (
 	Spcl SubcategoryOperationCode = iota
 )
 
+func SubcategoryCodeFromString(v string) (SubcategoryCode, error) {
+	switch v {
+	case "COMB":
+		return Comb, nil
+	case "COMC":
+		return Comc, nil
+	case "FUEL":
+		return Fuel, nil
+	case "PRCN":
+		return Prcn, nil
+	case "INCC":
+		return Incc, nil
+	case "EXPC":
+		return Expc, nil
+	case "EXCH":
+		return Exch, nil
+	case "TRFR":
+		return Trfr, nil
+	default:
+		return None, errors.New("unknown subcategory code")
+	}
+}
+
 func (n *SubcategoryCode) UnmarshalJSON(b []byte) error {
 	if string(b) == "null" {
 		*n = None
@@ -39,27 +62,8 @@ func (n *SubcategoryCode) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	switch v {
-	case "COMB":
-		*n = Comb
-	case "COMC":
-		*n = Comc
-	case "FUEL":
-		*n = Fuel
-	case "PRCN":
-		*n = Prcn
-	case "INCC":
-		*n = Incc
-	case "EXPC":
-		*n = Expc
-	case "EXCH":
-		*n = Exch
-	case "TRFR":
-		*n = Trfr
-	default:
-		return errors.New("unknown subcategory code")
-	}
-	return nil
+	*n, err = SubcategoryCodeFromString(v)
+	return err
 }
 
 func (n *SubcategoryOperationCode) UnmarshalJSON(b []byte) error {
@@ -82,11 +86,12 @@ func (n *SubcategoryOperationCode) UnmarshalJSON(b []byte) error {
 }
 
 type Subcategory struct {
-	Id              int
-	Code            SubcategoryCode
-	Name            string
-	OperationCodeId SubcategoryOperationCode
-	CategoryId      int
+	Id                 int
+	Code               SubcategoryCode
+	Name               string
+	OperationCodeId    SubcategoryOperationCode
+	CategoryId         int
+	RequiredProperties []FinOpPropertyCode
 }
 
 func (s Subcategory) GetId() int {
@@ -110,7 +115,22 @@ func (s Subcategory) Save(writer io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return binary.Write(writer, binary.LittleEndian, uint8(s.OperationCodeId))
+	err = binary.Write(writer, binary.LittleEndian, uint8(s.OperationCodeId))
+	if err != nil {
+		return err
+	}
+	l := uint8(len(s.RequiredProperties))
+	err = binary.Write(writer, binary.LittleEndian, l)
+	if err != nil {
+		return err
+	}
+	for _, prop := range s.RequiredProperties {
+		err = binary.Write(writer, binary.LittleEndian, uint8(prop))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func NewSubcategoryFromBinary(reader io.Reader) (Subcategory, error) {
@@ -139,8 +159,23 @@ func NewSubcategoryFromBinary(reader io.Reader) (Subcategory, error) {
 	if err != nil {
 		return Subcategory{}, nil
 	}
+	var l uint8
+	err = binary.Read(reader, binary.LittleEndian, &l)
+	if err != nil {
+		return Subcategory{}, nil
+	}
+	var requiredProperties []FinOpPropertyCode
+	for l > 0 {
+		var prop uint8
+		err = binary.Read(reader, binary.LittleEndian, &prop)
+		if err != nil {
+			return Subcategory{}, nil
+		}
+		requiredProperties = append(requiredProperties, FinOpPropertyCode(prop))
+		l--
+	}
 	return Subcategory{Id: int(id), Name: name, CategoryId: int(categoryId), Code: SubcategoryCode(code),
-		OperationCodeId: SubcategoryOperationCode(operationCode)}, nil
+		OperationCodeId: SubcategoryOperationCode(operationCode), RequiredProperties: requiredProperties}, nil
 }
 
 func SaveSubcategoryByIndex(index int, value []Subcategory, writer io.Writer) error {

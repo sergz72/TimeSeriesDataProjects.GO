@@ -76,8 +76,39 @@ func (c jsonDBConfiguration) GetCategories(fileName string) ([]entities.Category
 	return core.LoadJson[[]entities.Category](fileName + ".json")
 }
 
-func (c jsonDBConfiguration) GetSubcategories(fileName string) ([]entities.Subcategory, error) {
-	return core.LoadJson[[]entities.Subcategory](fileName + ".json")
+type subcategoryMap struct {
+	SubcategoryCode string
+	PropertyCode    string
+}
+
+func (c jsonDBConfiguration) GetSubcategories(fileName, mapFileName string) ([]entities.Subcategory, error) {
+	subcategories, err := core.LoadJson[[]entities.Subcategory](fileName + ".json")
+	if err != nil {
+		return nil, err
+	}
+	subcategoriesMap, err := core.LoadJson[[]subcategoryMap](mapFileName + ".json")
+	if err != nil {
+		return nil, err
+	}
+	for _, item := range subcategoriesMap {
+		var code entities.SubcategoryCode
+		code, err = entities.SubcategoryCodeFromString(item.SubcategoryCode)
+		if err != nil {
+			return nil, err
+		}
+		var prop entities.FinOpPropertyCode
+		prop, err = entities.FinOpPropertyCodeFromString(item.PropertyCode)
+		if err != nil {
+			return nil, err
+		}
+		for i := 0; i < len(subcategories); i++ {
+			s := &subcategories[i]
+			if s.Code == code {
+				s.RequiredProperties = append(s.RequiredProperties, prop)
+			}
+		}
+	}
+	return subcategories, nil
 }
 
 func (c jsonDBConfiguration) GetMainDataSource() core.DatedSource[entities.FinanceRecord] {

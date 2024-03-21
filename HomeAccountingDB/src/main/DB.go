@@ -18,7 +18,7 @@ type settings struct {
 type dBConfiguration interface {
 	GetAccounts(fileName string) ([]entities.Account, error)
 	GetCategories(fileName string) ([]entities.Category, error)
-	GetSubcategories(fileName string) ([]entities.Subcategory, error)
+	GetSubcategories(fileName, mapFileName string) ([]entities.Subcategory, error)
 	GetMainDataSource() core.DatedSource[entities.FinanceRecord]
 	GetAccountsSaver() core.DataSaver[[]entities.Account]
 	GetCategoriesSaver() core.DataSaver[[]entities.Category]
@@ -44,6 +44,10 @@ func getCategoriesFileName(dataFolderPath string) string {
 
 func getSubcategoriesFileName(dataFolderPath string) string {
 	return dataFolderPath + "/subcategories"
+}
+
+func getSubcategoriesMapFileName(dataFolderPath string) string {
+	return dataFolderPath + "/subcategory_to_property_code_map"
 }
 
 func getMainDataFolderPath(dataFolderPath string) string {
@@ -74,7 +78,7 @@ func loadDicts(s settings, configuration dBConfiguration) (core.DictionaryData[e
 	}
 	categories := core.NewDictionaryData[entities.Category](path, "category", clist)
 	path = getSubcategoriesFileName(s.DataFolderPath)
-	slist, err := configuration.GetSubcategories(path)
+	slist, err := configuration.GetSubcategories(path, getSubcategoriesMapFileName(s.DataFolderPath))
 	if err != nil {
 		return core.DictionaryData[entities.Account]{}, core.DictionaryData[entities.Category]{},
 			core.DictionaryData[entities.Subcategory]{}, err
@@ -188,4 +192,8 @@ func (d *dB) saveTo(dataFolderPath string, configuration dBConfiguration) error 
 		return err
 	}
 	return d.data.SaveAll(configuration.GetMainDataSource(), getMainDataFolderPath(dataFolderPath))
+}
+
+func (d *dB) getDicts() []byte {
+	return nil
 }

@@ -11,7 +11,7 @@ import (
 )
 
 func usage() {
-	fmt.Println("Usage: HomeAccountingDB2 config_file_name\n  test_json date\n  test date aes_key_file\n  migrate source_folder\n server")
+	fmt.Println("Usage: HomeAccountingDB2 config_file_name\n  test_json date\n  test date aes_key_file\n  migrate source_folder aes_key_file\n server")
 }
 
 func main() {
@@ -32,16 +32,16 @@ func main() {
 			testJson(s, os.Args[3])
 		}
 	case "test":
-		if l != 4 {
+		if l != 5 {
 			usage()
 		} else {
 			testBinary(s, os.Args[3], os.Args[4])
 		}
 	case "migrate":
-		if l != 4 {
+		if l != 5 {
 			usage()
 		} else {
-			migrate(s, os.Args[3])
+			migrate(s, os.Args[3], os.Args[4])
 		}
 	case "server":
 		if l != 3 {
@@ -54,18 +54,10 @@ func main() {
 	}
 }
 
-type serverData struct {
-	db *dB
-}
-
-func (d *serverData) handle(request []byte) ([]byte, error) {
-	return nil, nil
-}
-
 func startServer(s settings) {
-	userData := serverData{}
-	server, err := network.NewTcpServer[serverData](s.ServerPort, s.Key, "HomeAccountingDB", userData,
-		func(request []byte, userData *serverData) ([]byte, error) {
+	userData := tcpServerData{}
+	server, err := network.NewTcpServer[tcpServerData](s.ServerPort, s.Key, "HomeAccountingDB", userData,
+		func(request []byte, userData *tcpServerData) ([]byte, error) {
 			return userData.handle(request)
 		})
 	if err != nil {
@@ -118,11 +110,11 @@ func buildBinaryDbConfiguration(aesKeyFileName string) dBConfiguration {
 	return newBinaryDBConfiguration(aes)
 }
 
-func migrate(s settings, sourceFolder string) {
+func migrate(s settings, sourceFolder, aesKeyFile string) {
 	destFolder := s.DataFolderPath
 	s.DataFolderPath = sourceFolder
 	db := buildDB(s, jsonDBConfiguration{})
-	err := db.saveTo(destFolder, buildBinaryDbConfiguration(s.Key))
+	err := db.saveTo(destFolder, buildBinaryDbConfiguration(aesKeyFile))
 	if err != nil {
 		panic(err)
 	}

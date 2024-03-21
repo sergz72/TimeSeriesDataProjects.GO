@@ -21,29 +21,33 @@ const (
 	Typ  FinOpPropertyCode = iota
 )
 
+func FinOpPropertyCodeFromString(v string) (FinOpPropertyCode, error) {
+	switch v {
+	case "AMOU":
+		return Amou, nil
+	case "DIST":
+		return Dist, nil
+	case "NETW":
+		return Netw, nil
+	case "PPTO":
+		return Ppto, nil
+	case "SECA":
+		return Seca, nil
+	case "TYPE":
+		return Typ, nil
+	default:
+		return Amou, errors.New("unknown fin_op_property code")
+	}
+}
+
 func (n *FinOpPropertyCode) UnmarshalJSON(b []byte) error {
 	var v string
 	err := json.Unmarshal(b, &v)
 	if err != nil {
 		return err
 	}
-	switch v {
-	case "AMOU":
-		*n = Amou
-	case "DIST":
-		*n = Dist
-	case "NETW":
-		*n = Netw
-	case "PPTO":
-		*n = Ppto
-	case "SECA":
-		*n = Seca
-	case "TYPE":
-		*n = Typ
-	default:
-		return errors.New("unknown fin_op_property code")
-	}
-	return nil
+	*n, err = FinOpPropertyCodeFromString(v)
+	return err
 }
 
 type FinOpProperty struct {
