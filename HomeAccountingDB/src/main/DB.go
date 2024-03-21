@@ -19,13 +19,15 @@ type dBConfiguration interface {
 	GetAccounts(fileName string) ([]entities.Account, error)
 	GetCategories(fileName string) ([]entities.Category, error)
 	GetSubcategories(fileName, mapFileName string) ([]entities.Subcategory, error)
-	GetHints(fileName string) (map[entities.FinOpPropertyCode]map[string]bool, error)
+	GetHints(fileName string) (dbHints, error)
 	GetMainDataSource() core.DatedSource[entities.FinanceRecord]
 	GetAccountsSaver() core.DataSaver[[]entities.Account]
 	GetCategoriesSaver() core.DataSaver[[]entities.Category]
 	GetSubcategoriesSaver() core.DataSaver[[]entities.Subcategory]
-	GetHintsSaver() core.DataSaver[map[entities.FinOpPropertyCode]map[string]bool]
+	GetHintsSaver() core.DataSaver[dbHints]
 }
+
+type dbHints map[entities.FinOpPropertyCode]map[string]bool
 
 type dB struct {
 	dataFolderPath string
@@ -34,7 +36,7 @@ type dB struct {
 	categories     core.DictionaryData[entities.Category]
 	subcategories  core.DictionaryData[entities.Subcategory]
 	data           core.TimeSeriesData[entities.FinanceRecord]
-	hints          map[entities.FinOpPropertyCode]map[string]bool
+	hints          dbHints
 }
 
 func getAccountsFileName(dataFolderPath string) string {
@@ -246,7 +248,7 @@ func (d *dB) mergeHints(hints map[entities.FinOpPropertyCode]map[string]bool) {
 	}
 }
 
-func (d *dB) saveHints(saver core.DataSaver[map[entities.FinOpPropertyCode]map[string]bool], fileName string) error {
+func (d *dB) saveHints(saver core.DataSaver[dbHints], fileName string) error {
 	if saver == nil {
 		return nil
 	}

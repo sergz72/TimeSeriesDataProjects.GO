@@ -47,13 +47,35 @@ type binaryDBConfiguration struct {
 	processor core.CryptoProcessor
 }
 
-func (b binaryDBConfiguration) GetHints(fileName string) (map[entities.FinOpPropertyCode]map[string]bool, error) {
-	//TODO implement me
-	panic("implement me")
+type hintsItem struct {
+	code  entities.FinOpPropertyCode
+	hints map[string]bool
 }
 
-func (b binaryDBConfiguration) GetHintsSaver() core.DataSaver[map[entities.FinOpPropertyCode]map[string]bool] {
-	return hintsSaver{}
+func newHintsItem(reader io.Reader) (hintsItem, error) {
+	panic("todo")
+}
+
+func (b binaryDBConfiguration) GetHints(fileName string) (dbHints, error) {
+	items, err := core.LoadBinary[[]hintsItem](fileName+".bin", b.processor, func(reader io.Reader) ([]hintsItem, error) {
+		return core.LoadBinaryArray[hintsItem](reader, newHintsItem)
+	})
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[entities.FinOpPropertyCode]map[string]bool)
+	for _, item := range items {
+		result[item.code] = item.hints
+	}
+	return result, nil
+}
+
+func (h dbHints) Save(writer io.Writer) error {
+	panic("todo")
+}
+
+func (b binaryDBConfiguration) GetHintsSaver() core.DataSaver[dbHints] {
+	return core.NewBinarySaver[dbHints](b.processor)
 }
 
 func newBinaryDBConfiguration(processor core.CryptoProcessor) binaryDBConfiguration {
@@ -92,12 +114,4 @@ func (b binaryDBConfiguration) GetCategoriesSaver() core.DataSaver[[]entities.Ca
 
 func (b binaryDBConfiguration) GetSubcategoriesSaver() core.DataSaver[[]entities.Subcategory] {
 	return core.NewBinarySaver[[]entities.Subcategory](b.processor)
-}
-
-type hintsSaver struct{}
-
-func (h hintsSaver) Save(data map[entities.FinOpPropertyCode]map[string]bool, fileName string,
-	saveIndex func(int, map[entities.FinOpPropertyCode]map[string]bool, io.Writer) error) error {
-	//TODO implement me
-	panic("implement me")
 }

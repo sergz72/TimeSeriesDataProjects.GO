@@ -38,11 +38,11 @@ func (s jsonDatedSource) Save(date int, data *entities.FinanceRecord, dataFolder
 
 type jsonDBConfiguration struct{}
 
-func (c jsonDBConfiguration) GetHints(fileName string) (map[entities.FinOpPropertyCode]map[string]bool, error) {
+func (c jsonDBConfiguration) GetHints(fileName string) (dbHints, error) {
 	return make(map[entities.FinOpPropertyCode]map[string]bool), nil
 }
 
-func (c jsonDBConfiguration) GetHintsSaver() core.DataSaver[map[entities.FinOpPropertyCode]map[string]bool] {
+func (c jsonDBConfiguration) GetHintsSaver() core.DataSaver[dbHints] {
 	return nil
 }
 
