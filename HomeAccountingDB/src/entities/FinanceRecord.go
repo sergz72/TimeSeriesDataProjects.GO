@@ -117,6 +117,23 @@ func (r *FinanceRecord) Save(writer io.Writer) error {
 	return nil
 }
 
+func (r *FinanceRecord) BuildHints() map[FinOpPropertyCode]map[string]bool {
+	result := make(map[FinOpPropertyCode]map[string]bool)
+	for _, op := range r.operations {
+		for _, prop := range op.FinOpProperties {
+			if prop.StringValue != nil && len(*prop.StringValue) > 0 {
+				h, ok := result[prop.PropertyCode]
+				if !ok {
+					h = make(map[string]bool)
+					result[prop.PropertyCode] = h
+				}
+				h[*prop.StringValue] = true
+			}
+		}
+	}
+	return result
+}
+
 func NewFinanceRecordFromBinary(reader io.Reader) (*FinanceRecord, error) {
 	var r FinanceRecord
 	var l uint32

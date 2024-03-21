@@ -77,6 +77,7 @@ func buildDB(s settings, dbConfiguration dBConfiguration) *dB {
 	if err != nil {
 		panic(err)
 	}
+
 	fmt.Println("Calculating finance totals...")
 	start = time.Now()
 	err = db.buildTotals(0)
@@ -84,6 +85,15 @@ func buildDB(s settings, dbConfiguration dBConfiguration) *dB {
 		panic("BuildTotals error: " + err.Error())
 	}
 	fmt.Printf("%v elapsed.\n", time.Since(start))
+
+	fmt.Println("Building hints...")
+	start = time.Now()
+	err = db.buildHints()
+	if err != nil {
+		panic("BuildHints error: " + err.Error())
+	}
+	fmt.Printf("%v elapsed.\n", time.Since(start))
+
 	return db
 }
 

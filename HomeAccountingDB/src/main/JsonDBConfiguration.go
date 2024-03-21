@@ -38,6 +38,14 @@ func (s jsonDatedSource) Save(date int, data *entities.FinanceRecord, dataFolder
 
 type jsonDBConfiguration struct{}
 
+func (c jsonDBConfiguration) GetHints(fileName string) (map[entities.FinOpPropertyCode]map[string]bool, error) {
+	return make(map[entities.FinOpPropertyCode]map[string]bool), nil
+}
+
+func (c jsonDBConfiguration) GetHintsSaver() core.DataSaver[map[entities.FinOpPropertyCode]map[string]bool] {
+	return nil
+}
+
 func (c jsonDBConfiguration) GetAccountsSaver() core.DataSaver[[]entities.Account] {
 	//TODO implement me
 	panic("implement me")
