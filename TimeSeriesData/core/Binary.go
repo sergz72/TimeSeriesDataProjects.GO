@@ -27,14 +27,14 @@ func NewBinarySaver[T any](processor CryptoProcessor) BinarySaver[T] {
 }
 
 func (b BinarySaver[T]) Save(data T, fileName string, saveIndex func(int, T, io.Writer) error) error {
-	result, err := b.buildBytes(data, saveIndex)
+	result, err := b.BuildBytes(data, saveIndex)
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(fileName+".bin", result, 0644)
 }
 
-func (b BinarySaver[T]) buildBytes(data T, saveIndex func(int, T, io.Writer) error) ([]byte, error) {
+func (b BinarySaver[T]) BuildBytes(data T, saveIndex func(int, T, io.Writer) error) ([]byte, error) {
 	bdata, ok := any(data).(BinaryData)
 	if ok {
 		return buildBinaryDataBytes(b.processor, bdata)

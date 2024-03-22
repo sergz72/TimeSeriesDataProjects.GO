@@ -25,7 +25,7 @@ func newTestBinaryData(reader io.Reader) (testBinaryData, error) {
 
 func TestBinarySaver(t *testing.T) {
 	source := testBinaryData{1}
-	data, err := BinarySaver[testBinaryData]{}.buildBytes(source, nil)
+	data, err := BinarySaver[testBinaryData]{}.BuildBytes(source, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestBinarySaver(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err = NewBinarySaver[testBinaryData](processor).buildBytes(source, nil)
+	data, err = NewBinarySaver[testBinaryData](processor).BuildBytes(source, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func saveIndex(index int, value []testBinaryData, writer io.Writer) error {
 
 func TestBinarySaverArray(t *testing.T) {
 	source := []testBinaryData{{1}, {2}, {3}}
-	data, err := BinarySaver[[]testBinaryData]{}.buildBytes(source, saveIndex)
+	data, err := BinarySaver[[]testBinaryData]{}.BuildBytes(source, saveIndex)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestBinarySaverArray(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err = NewBinarySaver[[]testBinaryData](processor).buildBytes(source, saveIndex)
+	data, err = NewBinarySaver[[]testBinaryData](processor).BuildBytes(source, saveIndex)
 	if err != nil {
 		t.Fatal(err)
 	}

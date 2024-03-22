@@ -3,6 +3,7 @@ package main
 import (
 	"HomeAccountingDB/src/entities"
 	"TimeSeriesData/core"
+	"encoding/binary"
 	"io"
 	"strconv"
 	"strings"
@@ -53,7 +54,41 @@ type hintsItem struct {
 }
 
 func newHintsItem(reader io.Reader) (hintsItem, error) {
-	panic("todo")
+	var code uint8
+	err := binary.Read(reader, binary.LittleEndian, &code)
+	if err != nil {
+		return hintsItem{}, err
+	}
+	var l uint8
+	err = binary.Read(reader, binary.LittleEndian, &l)
+	if err != nil {
+		return hintsItem{}, err
+	}
+	hints := make(map[string]bool)
+	for l > 0 {
+		var hint string
+		hint, err = core.ReadStringFromBinary(reader)
+		if err != nil {
+			return hintsItem{}, err
+		}
+		hints[hint] = true
+		l--
+	}
+	return hintsItem{code: entities.FinOpPropertyCode(code), hints: hints}, nil
+}
+
+func (b binaryDBConfiguration) getHintsFromData(data []byte) (dbHints, error) {
+	items, err := core.LoadBinaryData[[]hintsItem](data, b.processor, func(reader io.Reader) ([]hintsItem, error) {
+		return core.LoadBinaryArray[hintsItem](reader, newHintsItem)
+	})
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[entities.FinOpPropertyCode]map[string]bool)
+	for _, item := range items {
+		result[item.code] = item.hints
+	}
+	return result, nil
 }
 
 func (b binaryDBConfiguration) GetHints(fileName string) (dbHints, error) {
@@ -71,7 +106,28 @@ func (b binaryDBConfiguration) GetHints(fileName string) (dbHints, error) {
 }
 
 func (h dbHints) Save(writer io.Writer) error {
-	panic("todo")
+	l := uint16(len(h))
+	err := binary.Write(writer, binary.LittleEndian, l)
+	if err != nil {
+		return err
+	}
+	for k, v := range h {
+		err = binary.Write(writer, binary.LittleEndian, uint8(k))
+		if err != nil {
+			return err
+		}
+		err = binary.Write(writer, binary.LittleEndian, uint8(len(v)))
+		if err != nil {
+			return err
+		}
+		for hint := range v {
+			err = core.WriteStringToBinary(writer, hint)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (b binaryDBConfiguration) GetHintsSaver() core.DataSaver[dbHints] {
