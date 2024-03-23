@@ -3,7 +3,6 @@ package main
 import (
 	"HomeAccountingDB/src/entities"
 	"TimeSeriesData/core"
-	"bytes"
 	"fmt"
 	"os"
 )
@@ -23,11 +22,7 @@ type dBConfiguration interface {
 	GetSubcategories(fileName, mapFileName string) ([]entities.Subcategory, error)
 	GetHints(fileName string) (dbHints, error)
 	GetMainDataSource() core.DatedSource[entities.FinanceRecord]
-	GetAccountsSaver(buffer *bytes.Buffer) core.DataSaver[[]entities.Account]
-	GetCategoriesSaver(buffer *bytes.Buffer) core.DataSaver[[]entities.Category]
-	GetSubcategoriesSaver(buffer *bytes.Buffer) core.DataSaver[[]entities.Subcategory]
-	GetHintsSaver(buffer *bytes.Buffer) core.DataSaver[dbHints]
-	GetOpsAndChangesSaver() core.DataSaver[entities.OpsAndChanges]
+	GetSaver() core.DataSaver
 }
 
 type dbHints map[entities.FinOpPropertyCode]map[string]bool
@@ -197,15 +192,15 @@ func (d *dB) save() error {
 }
 
 func (d *dB) saveTo(dataFolderPath string, configuration dBConfiguration) error {
-	err := d.accounts.SaveToFile(configuration.GetAccountsSaver(nil), getAccountsFileName(dataFolderPath), entities.SaveAccountByIndex)
+	err := d.accounts.SaveToFile(configuration.GetSaver(), getAccountsFileName(dataFolderPath), entities.SaveAccountByIndex)
 	if err != nil {
 		return err
 	}
-	err = d.categories.SaveToFile(configuration.GetCategoriesSaver(nil), getCategoriesFileName(dataFolderPath), entities.SaveCategoryByIndex)
+	err = d.categories.SaveToFile(configuration.GetSaver(), getCategoriesFileName(dataFolderPath), entities.SaveCategoryByIndex)
 	if err != nil {
 		return err
 	}
-	err = d.subcategories.SaveToFile(configuration.GetSubcategoriesSaver(nil), getSubcategoriesFileName(dataFolderPath), entities.SaveSubcategoryByIndex)
+	err = d.subcategories.SaveToFile(configuration.GetSaver(), getSubcategoriesFileName(dataFolderPath), entities.SaveSubcategoryByIndex)
 	if err != nil {
 		return err
 	}
@@ -213,26 +208,25 @@ func (d *dB) saveTo(dataFolderPath string, configuration dBConfiguration) error 
 	if err != nil {
 		return err
 	}
-	return d.saveHints(configuration.GetHintsSaver(nil), getHintsFileName(dataFolderPath))
+	return d.saveHints(configuration.GetSaver(), getHintsFileName(dataFolderPath))
 }
 
 func (d *dB) getDicts() ([]byte, error) {
-	buffer := new(bytes.Buffer)
-	err := d.accounts.SaveTo(d.configuration.GetAccountsSaver(buffer), entities.SaveAccountByIndex)
+	saver := core.NewBinarySaver(nil)
+	err := d.accounts.SaveTo(saver, entities.SaveAccountByIndex)
 	if err != nil {
 		return nil, err
 	}
-	err = d.categories.SaveTo(d.configuration.GetCategoriesSaver(buffer), entities.SaveCategoryByIndex)
+	err = d.categories.SaveTo(saver, entities.SaveCategoryByIndex)
 	if err != nil {
 		return nil, err
 	}
-	err = d.subcategories.SaveTo(d.configuration.GetSubcategoriesSaver(buffer), entities.SaveSubcategoryByIndex)
+	err = d.subcategories.SaveTo(saver, entities.SaveSubcategoryByIndex)
 	if err != nil {
 		return nil, err
 	}
-	saver := d.configuration.GetHintsSaver(buffer)
 	err = saver.Save(d.hints, nil)
-	return saver.GetRawBytes(), err
+	return saver.GetBytes(), err
 }
 
 func (d *dB) getOpsAndChanges(date int) ([]byte, error) {
@@ -249,12 +243,12 @@ func (d *dB) getOpsAndChanges(date int) ([]byte, error) {
 	} else {
 		result = entities.OpsAndChanges{Changes: make(map[int]*entities.FinanceChange)}
 	}
-	saver := d.configuration.GetOpsAndChangesSaver()
+	saver := core.NewBinarySaver(nil)
 	err = saver.Save(result, nil)
 	if err != nil {
 		return nil, err
 	}
-	return saver.GetRawBytes(), nil
+	return saver.GetBytes(), nil
 }
 
 func (d *dB) buildHints() error {
@@ -288,7 +282,7 @@ func (d *dB) mergeHints(hints map[entities.FinOpPropertyCode]map[string]bool) {
 	}
 }
 
-func (d *dB) saveHints(saver core.DataSaver[dbHints], fileName string) error {
+func (d *dB) saveHints(saver core.DataSaver, fileName string) error {
 	if saver == nil {
 		return nil
 	}

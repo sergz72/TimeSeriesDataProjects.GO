@@ -34,6 +34,7 @@ func NewCategoryFromBinary(reader io.Reader) (Category, error) {
 	return Category{int(id), name}, err
 }
 
-func SaveCategoryByIndex(index int, value []Category, writer io.Writer) error {
-	return value[index].Save(writer)
+func SaveCategoryByIndex(index int, value any, writer io.Writer) error {
+	v := value.([]Category)
+	return v[index].Save(writer)
 }

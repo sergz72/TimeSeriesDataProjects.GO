@@ -3,7 +3,6 @@ package main
 import (
 	"HomeAccountingDB/src/entities"
 	"TimeSeriesData/core"
-	"bytes"
 	"encoding/binary"
 	"io"
 	"strconv"
@@ -131,11 +130,8 @@ func (h dbHints) Save(writer io.Writer) error {
 	return nil
 }
 
-func (b binaryDBConfiguration) GetHintsSaver(buffer *bytes.Buffer) core.DataSaver[dbHints] {
-	if buffer == nil {
-		buffer = new(bytes.Buffer)
-	}
-	return core.NewBinarySaver[dbHints](b.processor, buffer)
+func (b binaryDBConfiguration) GetSaver() core.DataSaver {
+	return core.NewBinarySaver(b.processor)
 }
 
 func newBinaryDBConfiguration(processor core.CryptoProcessor) binaryDBConfiguration {
@@ -154,7 +150,7 @@ func (b binaryDBConfiguration) GetCategories(fileName string) ([]entities.Catego
 	})
 }
 
-func (b binaryDBConfiguration) GetSubcategories(fileName, mapFileName string) ([]entities.Subcategory, error) {
+func (b binaryDBConfiguration) GetSubcategories(fileName, _ string) ([]entities.Subcategory, error) {
 	return core.LoadBinary[[]entities.Subcategory](fileName+".bin", b.processor, func(reader io.Reader) ([]entities.Subcategory, error) {
 		return core.LoadBinaryArray[entities.Subcategory](reader, entities.NewSubcategoryFromBinary)
 	})
@@ -162,29 +158,4 @@ func (b binaryDBConfiguration) GetSubcategories(fileName, mapFileName string) ([
 
 func (b binaryDBConfiguration) GetMainDataSource() core.DatedSource[entities.FinanceRecord] {
 	return &binaryDatedSource{b.processor}
-}
-
-func (b binaryDBConfiguration) GetAccountsSaver(buffer *bytes.Buffer) core.DataSaver[[]entities.Account] {
-	if buffer == nil {
-		buffer = new(bytes.Buffer)
-	}
-	return core.NewBinarySaver[[]entities.Account](b.processor, buffer)
-}
-
-func (b binaryDBConfiguration) GetCategoriesSaver(buffer *bytes.Buffer) core.DataSaver[[]entities.Category] {
-	if buffer == nil {
-		buffer = new(bytes.Buffer)
-	}
-	return core.NewBinarySaver[[]entities.Category](b.processor, buffer)
-}
-
-func (b binaryDBConfiguration) GetSubcategoriesSaver(buffer *bytes.Buffer) core.DataSaver[[]entities.Subcategory] {
-	if buffer == nil {
-		buffer = new(bytes.Buffer)
-	}
-	return core.NewBinarySaver[[]entities.Subcategory](b.processor, buffer)
-}
-
-func (b binaryDBConfiguration) GetOpsAndChangesSaver() core.DataSaver[entities.OpsAndChanges] {
-	return core.NewBinarySaver[entities.OpsAndChanges](b.processor, new(bytes.Buffer))
 }

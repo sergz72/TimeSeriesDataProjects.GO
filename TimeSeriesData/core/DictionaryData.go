@@ -10,10 +10,9 @@ type DataSource[T any] interface {
 	Load(fileName string) (T, error)
 }
 
-type DataSaver[T any] interface {
-	Save(data T, saveIndex func(int, T, io.Writer) error) error
+type DataSaver interface {
+	Save(data any, saveIndex func(int, any, io.Writer) error) error
 	GetBytes() []byte
-	GetRawBytes() []byte
 	GetFileExtension() string
 }
 
@@ -43,7 +42,7 @@ func (d *DictionaryData[T]) Get(idx int) (*T, error) {
 	return &v, nil
 }
 
-func (d *DictionaryData[T]) SaveTo(saver DataSaver[[]T], saveIndex func(int, []T, io.Writer) error) error {
+func (d *DictionaryData[T]) SaveTo(saver DataSaver, saveIndex func(int, any, io.Writer) error) error {
 	var list []T
 	for _, v := range d.data {
 		list = append(list, v)
@@ -51,7 +50,7 @@ func (d *DictionaryData[T]) SaveTo(saver DataSaver[[]T], saveIndex func(int, []T
 	return saver.Save(list, saveIndex)
 }
 
-func (d *DictionaryData[T]) SaveToFile(saver DataSaver[[]T], fileName string, saveIndex func(int, []T, io.Writer) error) error {
+func (d *DictionaryData[T]) SaveToFile(saver DataSaver, fileName string, saveIndex func(int, any, io.Writer) error) error {
 	err := d.SaveTo(saver, saveIndex)
 	if err != nil {
 		return err
@@ -59,6 +58,6 @@ func (d *DictionaryData[T]) SaveToFile(saver DataSaver[[]T], fileName string, sa
 	return os.WriteFile(fileName+saver.GetFileExtension(), saver.GetBytes(), 0644)
 }
 
-func (d *DictionaryData[T]) Save(saver DataSaver[[]T], fileName string, saveIndex func(int, []T, io.Writer) error) error {
+func (d *DictionaryData[T]) Save(saver DataSaver, fileName string, saveIndex func(int, any, io.Writer) error) error {
 	return d.SaveToFile(saver, fileName, saveIndex)
 }

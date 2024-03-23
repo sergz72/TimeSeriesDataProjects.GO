@@ -18,17 +18,17 @@ type BinaryData interface {
 	Save(writer io.Writer) error
 }
 
-type BinarySaver[T any] struct {
+type BinarySaver struct {
 	processor CryptoProcessor
 	data *bytes.Buffer
 }
 
-func NewBinarySaver[T any](processor CryptoProcessor, data *bytes.Buffer) *BinarySaver[T] {
-	return &BinarySaver[T]{processor: processor, data: data}
+func NewBinarySaver(processor CryptoProcessor) *BinarySaver {
+	return &BinarySaver{processor: processor, data: new(bytes.Buffer)}
 }
 
-func (b *BinarySaver[T]) Save(data T, saveIndex func(int, T, io.Writer) error) error {
-	bdata, ok := any(data).(BinaryData)
+func (b *BinarySaver) Save(data any, saveIndex func(int, any, io.Writer) error) error {
+	bdata, ok := data.(BinaryData)
 	if ok {
 		return bdata.Save(b.data)
 	}
@@ -50,7 +50,7 @@ func (b *BinarySaver[T]) Save(data T, saveIndex func(int, T, io.Writer) error) e
 	return errors.New("unsupported data type")
 }
 
-func (b *BinarySaver[T]) GetBytes() []byte {
+func (b *BinarySaver) GetBytes() []byte {
 	dataBytes := b.data.Bytes()
 	if b.processor != nil {
 		dataBytes = b.processor.Encrypt(dataBytes)
@@ -58,11 +58,7 @@ func (b *BinarySaver[T]) GetBytes() []byte {
 	return dataBytes
 }
 
-func (b *BinarySaver[T]) GetRawBytes() []byte {
-	return b.data.Bytes()
-}
-
-func (b *BinarySaver[T]) GetFileExtension() string {
+func (b *BinarySaver) GetFileExtension() string {
 	return ".bin"
 }
 
