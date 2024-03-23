@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 )
 
 type dictsCommand struct{}
@@ -12,6 +13,7 @@ func newDictsCommand(buffer *bytes.Buffer) (command, error) {
 	if buffer.Len() != 0 {
 		return nil, errors.New("invalid dicts command")
 	}
+	fmt.Println("dicts command")
 	return &dictsCommand{}, nil
 }
 
@@ -33,6 +35,7 @@ func newOpsCommand(buffer *bytes.Buffer) (command, error) {
 	}
 	var date uint32
 	err := binary.Read(buffer, binary.LittleEndian, &date)
+	fmt.Printf("ops command, date=%v\n", date)
 	return &opsCommand{int(date)}, err
 }
 

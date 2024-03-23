@@ -14,12 +14,16 @@ type AESGcm struct {
 
 func (a AESGcm) Encrypt(data []byte) []byte {
 	nonce := make([]byte, 12)
-	rand.Read(nonce)
+	_, _ = rand.Read(nonce)
 	return append(nonce, a.aesgcm.Seal(nil, nonce, data, nil)...)
 }
 
 func (a AESGcm) EncryptWithNonce(data []byte, nonce []byte) []byte {
 	return a.aesgcm.Seal(nil, nonce, data, nil)
+}
+
+func (a AESGcm) DecryptWithNonce(data []byte, nonce []byte) ([]byte, error) {
+	return a.aesgcm.Open(nil, nonce, data, nil)
 }
 
 func (a AESGcm) Decrypt(data []byte) ([]byte, error) {

@@ -168,7 +168,7 @@ func (d *dB) printChanges(date int) {
 	}
 	if v != nil {
 		var result entities.OpsAndChanges
-		result, err = v.BuildOpsAndChanges(date, d.accounts, d.subcategories)
+		result, err = v.BuildOpsAndChanges(date, d.accounts, d.subcategories, false)
 		if err != nil {
 			panic(err)
 		}
@@ -236,7 +236,7 @@ func (d *dB) getOpsAndChanges(date int) ([]byte, error) {
 	}
 	var result entities.OpsAndChanges
 	if v != nil {
-		result, err = v.BuildOpsAndChanges(date, d.accounts, d.subcategories)
+		result, err = v.BuildOpsAndChanges(date, d.accounts, d.subcategories, true)
 		if err != nil {
 			return nil, err
 		}

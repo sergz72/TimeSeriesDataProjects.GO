@@ -257,7 +257,7 @@ func (op *FinanceOperation) SaveToBinary(writer io.Writer) error {
 	if err != nil {
 		return err
 	}
-	err = binary.Write(writer, binary.LittleEndian, uint32(len(op.FinOpProperties)))
+	err = binary.Write(writer, binary.LittleEndian, uint16(len(op.FinOpProperties)))
 	if err != nil {
 		return err
 	}
@@ -330,7 +330,7 @@ func NewFinanceOperationFromBinary(reader io.Reader) (FinanceOperation, error) {
 		var d = Decimal(v64)
 		op.Amount = &d
 	}
-	var ll uint32
+	var ll uint16
 	err = binary.Read(reader, binary.LittleEndian, &ll)
 	if err != nil {
 		return op, err

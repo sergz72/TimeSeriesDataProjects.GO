@@ -93,7 +93,7 @@ func (r *FinanceRecord) UpdateChanges(changes map[int]*FinanceChange, accounts c
 }
 
 func (r *FinanceRecord) BuildOpsAndChanges(date int, accounts core.DictionaryData[Account],
-	subcategories core.DictionaryData[Subcategory]) (OpsAndChanges, error) {
+	subcategories core.DictionaryData[Subcategory], filterChanges bool) (OpsAndChanges, error) {
 	changes := r.BuildChanges()
 	err := r.UpdateChanges(changes, accounts, subcategories, 0, date-1)
 	if err != nil {
@@ -111,10 +111,32 @@ func (r *FinanceRecord) BuildOpsAndChanges(date int, accounts core.DictionaryDat
 	if err != nil {
 		return OpsAndChanges{}, err
 	}
+	if filterChanges {
+		changes, err = doFilterChanges(changes, accounts, date)
+		if err != nil {
+			return OpsAndChanges{}, err
+		}
+	}
 	return OpsAndChanges{
 		Operations: ops,
 		Changes:    changes,
 	}, nil
+}
+
+func doFilterChanges(changes map[int]*FinanceChange, accounts core.DictionaryData[Account],
+	date int) (map[int]*FinanceChange, error) {
+	result := make(map[int]*FinanceChange)
+	for accountId, change := range changes {
+		acc, err := accounts.Get(accountId)
+		if err != nil {
+			return nil, err
+		}
+		if acc.ActiveTo > 0 && int(acc.ActiveTo) <= date {
+			continue
+		}
+		result[accountId] = change
+	}
+	return result, nil
 }
 
 func (r *FinanceRecord) Save(writer io.Writer) error {
