@@ -1,14 +1,16 @@
 package main
 
 import (
+	"TimeSeriesData/crypto"
 	"bytes"
 	"errors"
 	"sync"
 )
 
 type tcpServerData struct {
+	s      settings
 	db     *dB
-	lock   *sync.RWMutex
+	lock   sync.RWMutex
 	aesKey []byte
 }
 
@@ -18,13 +20,29 @@ type command interface {
 }
 
 func (d *tcpServerData) handle(request []byte) ([]byte, error) {
-	cmd, err := decodeRequest(request)
+	if len(request) < 33 {
+		return nil, errors.New("too short request")
+	}
+	cmd, err := decodeRequest(request[32:])
 	if err != nil {
 		return nil, err
 	}
 	if d.db == nil {
-		d.lock = &sync.RWMutex{}
-		panic("todo")
+		d.lock.Lock()
+		if d.db == nil {
+			aes, err := crypto.NewAesGcm(request[:32])
+			if err != nil {
+				d.lock.Unlock()
+				return nil, err
+			}
+			c := newBinaryDBConfiguration(aes)
+			d.db, err = initDatabase(d.s, c)
+			if err != nil {
+				d.lock.Unlock()
+				return nil, err
+			}
+		}
+		d.lock.Unlock()
 	}
 	if cmd.ReadOnlyLockRequired() {
 		d.lock.RLock()
@@ -37,10 +55,6 @@ func (d *tcpServerData) handle(request []byte) ([]byte, error) {
 }
 
 func decodeRequest(request []byte) (command, error) {
-	l := len(request)
-	if l == 0 {
-		return nil, errors.New("too short request")
-	}
 	buffer := bytes.NewBuffer(request[1:])
 	switch request[0] {
 	case 0: // DICTS request

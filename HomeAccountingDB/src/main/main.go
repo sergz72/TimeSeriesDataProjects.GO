@@ -55,8 +55,8 @@ func main() {
 }
 
 func startServer(s settings) {
-	userData := tcpServerData{}
-	server, err := network.NewTcpServer[tcpServerData](s.ServerPort, s.Key, "HomeAccountingDB", userData,
+	userData := tcpServerData{s: s}
+	server, err := network.NewTcpServer[tcpServerData](s.ServerPort, s.Key, "HomeAccountingDB", &userData,
 		func(request []byte, userData *tcpServerData) ([]byte, error) {
 			return userData.handle(request)
 		})
@@ -97,15 +97,12 @@ func buildDB(s settings, dbConfiguration dBConfiguration) *dB {
 	return db
 }
 
-func initDatabase(s settings, dbConfiguration dBConfiguration) *dB {
+func initDatabase(s settings, dbConfiguration dBConfiguration) (*dB, error) {
 	fmt.Println("Initializing database...")
 	start := time.Now()
 	db, err := initDB(s, dbConfiguration)
 	fmt.Printf("%v elapsed.\n", time.Since(start))
-	if err != nil {
-		panic(err)
-	}
-	return db
+	return db, err
 }
 
 func buildBinaryDbConfiguration(aesKeyFileName string) dBConfiguration {
@@ -144,6 +141,9 @@ func testBinary(s settings, dateString string, aesKeyFile string) {
 	if err != nil {
 		panic(err)
 	}
-	db := initDatabase(s, buildBinaryDbConfiguration(aesKeyFile))
+	db, err := initDatabase(s, buildBinaryDbConfiguration(aesKeyFile))
+	if err != nil {
+		panic(err)
+	}
 	db.printChanges(date)
 }

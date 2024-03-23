@@ -28,10 +28,10 @@ type TcpServer[T any] struct {
 	key      *rsa.PrivateKey
 	label    []byte
 	handler  func([]byte, *T) ([]byte, error)
-	userData T
+	userData *T
 }
 
-func NewTcpServer[T any](port int, keyFileName string, label string, userData T,
+func NewTcpServer[T any](port int, keyFileName string, label string, userData *T,
 	handler func([]byte, *T) ([]byte, error)) (*TcpServer[T], error) {
 	key, err := crypto.LoadRSAPrivateKey(keyFileName)
 	if err != nil {
@@ -88,7 +88,7 @@ func (s *TcpServer[T]) handleTcp(conn net.Conn, l *net.TCPListener) {
 		_ = l.Close()
 		return
 	}
-	response, err := s.handler(decrypted[44:], &s.userData)
+	response, err := s.handler(decrypted[44:], s.userData)
 	aesKey := decrypted[:32]
 	aesNonce := decrypted[32:44]
 	if err != nil {

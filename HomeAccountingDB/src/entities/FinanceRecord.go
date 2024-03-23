@@ -16,6 +16,10 @@ type OpsAndChanges struct {
 	Changes    map[int]*FinanceChange
 }
 
+func (c OpsAndChanges) Save(writer io.Writer) error {
+	panic("todo")
+}
+
 func NewFinanceRecord(operations []FinanceOperation) *FinanceRecord {
 	return &FinanceRecord{
 		operations: operations,
