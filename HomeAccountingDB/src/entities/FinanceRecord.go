@@ -17,7 +17,31 @@ type OpsAndChanges struct {
 }
 
 func (c OpsAndChanges) Save(writer io.Writer) error {
-	panic("todo")
+	err := binary.Write(writer, binary.LittleEndian, uint16(len(c.Operations)))
+	if err != nil {
+		return err
+	}
+	for _, op := range c.Operations {
+		err = op.SaveToBinary(writer)
+		if err != nil {
+			return err
+		}
+	}
+	err = binary.Write(writer, binary.LittleEndian, uint16(len(c.Changes)))
+	if err != nil {
+		return err
+	}
+	for accountId, change := range c.Changes {
+		err = binary.Write(writer, binary.LittleEndian, uint16(accountId))
+		if err != nil {
+			return err
+		}
+		err = change.SaveToBinary(writer)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func NewFinanceRecord(operations []FinanceOperation) *FinanceRecord {

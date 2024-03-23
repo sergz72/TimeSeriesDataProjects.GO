@@ -84,6 +84,18 @@ func (c *FinanceChange) Expenditure(summa int) {
 	c.SummaExpenditure += summa
 }
 
+func (c *FinanceChange) SaveToBinary(writer io.Writer) error {
+	err := binary.Write(writer, binary.LittleEndian, int64(c.StartBalance))
+	if err != nil {
+		return err
+	}
+	err = binary.Write(writer, binary.LittleEndian, int64(c.SummaIncome))
+	if err != nil {
+		return err
+	}
+	return binary.Write(writer, binary.LittleEndian, int64(c.SummaExpenditure))
+}
+
 func (op *FinanceOperation) UpdateChanges(changes map[int]*FinanceChange, accounts core.DictionaryData[Account],
 	subcategories core.DictionaryData[Subcategory]) error {
 	subcategory, err := subcategories.Get(op.SubcategoryId)
