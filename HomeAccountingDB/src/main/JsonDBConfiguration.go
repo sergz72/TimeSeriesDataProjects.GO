@@ -3,6 +3,7 @@ package main
 import (
 	"HomeAccountingDB/src/entities"
 	"TimeSeriesData/core"
+	"bytes"
 	"errors"
 	"strconv"
 )
@@ -42,21 +43,26 @@ func (c jsonDBConfiguration) GetHints(fileName string) (dbHints, error) {
 	return make(map[entities.FinOpPropertyCode]map[string]bool), nil
 }
 
-func (c jsonDBConfiguration) GetHintsSaver() core.DataSaver[dbHints] {
+func (c jsonDBConfiguration) GetHintsSaver(buffer *bytes.Buffer) core.DataSaver[dbHints] {
 	return nil
 }
 
-func (c jsonDBConfiguration) GetAccountsSaver() core.DataSaver[[]entities.Account] {
+func (c jsonDBConfiguration) GetAccountsSaver(buffer *bytes.Buffer) core.DataSaver[[]entities.Account] {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c jsonDBConfiguration) GetCategoriesSaver() core.DataSaver[[]entities.Category] {
+func (c jsonDBConfiguration) GetCategoriesSaver(buffer *bytes.Buffer) core.DataSaver[[]entities.Category] {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c jsonDBConfiguration) GetSubcategoriesSaver() core.DataSaver[[]entities.Subcategory] {
+func (c jsonDBConfiguration) GetSubcategoriesSaver(buffer *bytes.Buffer) core.DataSaver[[]entities.Subcategory] {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c jsonDBConfiguration) GetOpsAndChangesSaver() core.DataSaver[entities.OpsAndChanges] {
 	//TODO implement me
 	panic("implement me")
 }

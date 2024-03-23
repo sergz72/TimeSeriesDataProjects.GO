@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"sync"
 )
@@ -40,19 +41,13 @@ func decodeRequest(request []byte) (command, error) {
 	if l == 0 {
 		return nil, errors.New("too short request")
 	}
+	buffer := bytes.NewBuffer(request[1:])
 	switch request[0] {
 	case 0: // DICTS request
-		return &dictsCommand{}, nil
+		return newDictsCommand(buffer)
+	case 1: // DICTS request
+		return newOpsCommand(buffer)
+	default:
+		return nil, errors.New("unknown command")
 	}
-	return nil, nil
-}
-
-type dictsCommand struct{}
-
-func (d *dictsCommand) Execute(db *dB) ([]byte, error) {
-	return db.getDicts(), nil
-}
-
-func (d *dictsCommand) ReadOnlyLockRequired() bool {
-	return true
 }

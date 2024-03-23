@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"io"
+	"os"
 )
 
 type DataSource[T any] interface {
@@ -10,7 +11,10 @@ type DataSource[T any] interface {
 }
 
 type DataSaver[T any] interface {
-	Save(data T, fileName string, saveIndex func(int, T, io.Writer) error) error
+	Save(data T, saveIndex func(int, T, io.Writer) error) error
+	GetBytes() []byte
+	GetRawBytes() []byte
+	GetFileExtension() string
 }
 
 type Identifiable interface {
@@ -39,14 +43,22 @@ func (d *DictionaryData[T]) Get(idx int) (*T, error) {
 	return &v, nil
 }
 
-func (d *DictionaryData[T]) SaveTo(saver DataSaver[[]T], fileName string, saveIndex func(int, []T, io.Writer) error) error {
+func (d *DictionaryData[T]) SaveTo(saver DataSaver[[]T], saveIndex func(int, []T, io.Writer) error) error {
 	var list []T
 	for _, v := range d.data {
 		list = append(list, v)
 	}
-	return saver.Save(list, fileName, saveIndex)
+	return saver.Save(list, saveIndex)
 }
 
-func (d *DictionaryData[T]) Save(saver DataSaver[[]T], saveIndex func(int, []T, io.Writer) error) error {
-	return d.SaveTo(saver, d.fileName, saveIndex)
+func (d *DictionaryData[T]) SaveToFile(saver DataSaver[[]T], fileName string, saveIndex func(int, []T, io.Writer) error) error {
+	err := d.SaveTo(saver, saveIndex)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(fileName+saver.GetFileExtension(), saver.GetBytes(), 0644)
+}
+
+func (d *DictionaryData[T]) Save(saver DataSaver[[]T], fileName string, saveIndex func(int, []T, io.Writer) error) error {
+	return d.SaveToFile(saver, fileName, saveIndex)
 }

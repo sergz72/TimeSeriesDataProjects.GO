@@ -20,42 +20,50 @@ type BinaryData interface {
 
 type BinarySaver[T any] struct {
 	processor CryptoProcessor
+	data *bytes.Buffer
 }
 
-func NewBinarySaver[T any](processor CryptoProcessor) BinarySaver[T] {
-	return BinarySaver[T]{processor: processor}
+func NewBinarySaver[T any](processor CryptoProcessor, data *bytes.Buffer) *BinarySaver[T] {
+	return &BinarySaver[T]{processor: processor, data: data}
 }
 
-func (b BinarySaver[T]) Save(data T, fileName string, saveIndex func(int, T, io.Writer) error) error {
-	result, err := b.BuildBytes(data, saveIndex)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(fileName+".bin", result, 0644)
-}
-
-func (b BinarySaver[T]) BuildBytes(data T, saveIndex func(int, T, io.Writer) error) ([]byte, error) {
+func (b *BinarySaver[T]) Save(data T, saveIndex func(int, T, io.Writer) error) error {
 	bdata, ok := any(data).(BinaryData)
 	if ok {
-		return buildBinaryDataBytes(b.processor, bdata)
+		return bdata.Save(b.data)
 	}
 	t := reflect.ValueOf(data)
 	if t.Kind() == reflect.Array || t.Kind() == reflect.Slice {
 		l := t.Len()
-		buffer := new(bytes.Buffer)
-		err := binary.Write(buffer, binary.LittleEndian, uint16(l))
+		err := binary.Write(b.data, binary.LittleEndian, uint16(l))
 		if err != nil {
-			return nil, err
+			return err
 		}
 		for i := 0; i < l; i++ {
-			err = saveIndex(i, data, buffer)
+			err = saveIndex(i, data, b.data)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
-		return buildBytes(b.processor, buffer), nil
+		return nil
 	}
-	return nil, errors.New("unsupported data type")
+	return errors.New("unsupported data type")
+}
+
+func (b *BinarySaver[T]) GetBytes() []byte {
+	dataBytes := b.data.Bytes()
+	if b.processor != nil {
+		dataBytes = b.processor.Encrypt(dataBytes)
+	}
+	return dataBytes
+}
+
+func (b *BinarySaver[T]) GetRawBytes() []byte {
+	return b.data.Bytes()
+}
+
+func (b *BinarySaver[T]) GetFileExtension() string {
+	return ".bin"
 }
 
 func LoadBinaryArray[T any](reader io.Reader, creator func(reader io.Reader) (T, error)) ([]T, error) {

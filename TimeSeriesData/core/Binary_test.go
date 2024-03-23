@@ -2,6 +2,7 @@ package core
 
 import (
 	"TimeSeriesData/crypto"
+	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"io"
@@ -25,11 +26,12 @@ func newTestBinaryData(reader io.Reader) (testBinaryData, error) {
 
 func TestBinarySaver(t *testing.T) {
 	source := testBinaryData{1}
-	data, err := BinarySaver[testBinaryData]{}.BuildBytes(source, nil)
+	saver := &BinarySaver[testBinaryData]{data: new(bytes.Buffer)}
+	err := saver.Save(source, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	loaded, err := LoadBinaryData[testBinaryData](data, nil, newTestBinaryData)
+	loaded, err := LoadBinaryData[testBinaryData](saver.GetBytes(), nil, newTestBinaryData)
 	if !reflect.DeepEqual(source, loaded) {
 		t.Fatal("different data")
 	}
@@ -43,11 +45,12 @@ func TestBinarySaver(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err = NewBinarySaver[testBinaryData](processor).BuildBytes(source, nil)
+	saver = NewBinarySaver[testBinaryData](processor, new(bytes.Buffer))
+	err = saver.Save(source, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	loaded, err = LoadBinaryData[testBinaryData](data, processor, newTestBinaryData)
+	loaded, err = LoadBinaryData[testBinaryData](saver.GetBytes(), processor, newTestBinaryData)
 	if !reflect.DeepEqual(source, loaded) {
 		t.Fatal("different data2")
 	}
@@ -59,11 +62,12 @@ func saveIndex(index int, value []testBinaryData, writer io.Writer) error {
 
 func TestBinarySaverArray(t *testing.T) {
 	source := []testBinaryData{{1}, {2}, {3}}
-	data, err := BinarySaver[[]testBinaryData]{}.BuildBytes(source, saveIndex)
+	saver := &BinarySaver[[]testBinaryData]{data: new(bytes.Buffer)}
+	err := saver.Save(source, saveIndex)
 	if err != nil {
 		t.Fatal(err)
 	}
-	loaded, err := LoadBinaryData[[]testBinaryData](data, nil, func(reader io.Reader) ([]testBinaryData, error) {
+	loaded, err := LoadBinaryData[[]testBinaryData](saver.GetBytes(), nil, func(reader io.Reader) ([]testBinaryData, error) {
 		return LoadBinaryArray(reader, newTestBinaryData)
 	})
 	if len(loaded) != 3 || loaded[0].Id != 1 || loaded[1].Id != 2 || loaded[2].Id != 3 {
@@ -79,11 +83,12 @@ func TestBinarySaverArray(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err = NewBinarySaver[[]testBinaryData](processor).BuildBytes(source, saveIndex)
+	saver = NewBinarySaver[[]testBinaryData](processor, new(bytes.Buffer))
+	err = saver.Save(source, saveIndex)
 	if err != nil {
 		t.Fatal(err)
 	}
-	loaded, err = LoadBinaryData[[]testBinaryData](data, processor, func(reader io.Reader) ([]testBinaryData, error) {
+	loaded, err = LoadBinaryData[[]testBinaryData](saver.GetBytes(), processor, func(reader io.Reader) ([]testBinaryData, error) {
 		return LoadBinaryArray(reader, newTestBinaryData)
 	})
 	if len(loaded) != 3 || loaded[0].Id != 1 || loaded[1].Id != 2 || loaded[2].Id != 3 {
