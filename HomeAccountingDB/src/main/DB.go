@@ -3,6 +3,7 @@ package main
 import (
 	"HomeAccountingDB/src/entities"
 	"TimeSeriesData/core"
+	"errors"
 	"fmt"
 	"os"
 )
@@ -291,4 +292,16 @@ func (d *dB) saveHints(saver core.DataSaver, fileName string) error {
 		return err
 	}
 	return os.WriteFile(fileName+saver.GetFileExtension(), saver.GetBytes(), 0644)
+}
+
+func (d *dB) addOperation(command *addOperationCommand) ([]byte, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (d *dB) modifyOperation(command *modifyOperationCommand) ([]byte, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (d *dB) deleteOperation(command *deleteOperationCommand) ([]byte, error) {
+	return nil, errors.New("not implemented")
 }

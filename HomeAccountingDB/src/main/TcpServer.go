@@ -74,6 +74,12 @@ func decodeRequest(request []byte) (command, error) {
 		return newDictsCommand(buffer)
 	case 1: // DICTS request
 		return newOpsCommand(buffer)
+	case 2: // DICTS request
+		return newAddOperationCommand(buffer, "addOperation")
+	case 3: // DICTS request
+		return newModifyOperationCommand(buffer)
+	case 4: // DICTS request
+		return newDeleteOperationCommand(buffer)
 	default:
 		return nil, errors.New("unknown command")
 	}
