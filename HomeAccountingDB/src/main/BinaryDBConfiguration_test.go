@@ -12,7 +12,7 @@ func TestHints(t *testing.T) {
 	hints[entities.Typ] = map[string]bool{"Type1": true, "Type2": true}
 	hints[entities.Netw] = map[string]bool{"Netw1": true, "Netw2": true}
 	config := binaryDBConfiguration{}
-	saver, _ := config.GetHintsSaver(nil).(*core.BinarySaver[dbHints])
+	saver, _ := config.GetSaver().(*core.BinarySaver)
 	err := saver.Save(hints, nil)
 	if err != nil {
 		t.Fatal(err)

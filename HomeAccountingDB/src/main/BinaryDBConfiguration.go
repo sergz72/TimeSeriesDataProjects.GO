@@ -59,7 +59,7 @@ func newHintsItem(reader io.Reader) (hintsItem, error) {
 	if err != nil {
 		return hintsItem{}, err
 	}
-	var l uint8
+	var l uint16
 	err = binary.Read(reader, binary.LittleEndian, &l)
 	if err != nil {
 		return hintsItem{}, err
@@ -116,7 +116,7 @@ func (h dbHints) Save(writer io.Writer) error {
 		if err != nil {
 			return err
 		}
-		err = binary.Write(writer, binary.LittleEndian, uint8(len(v)))
+		err = binary.Write(writer, binary.LittleEndian, uint16(len(v)))
 		if err != nil {
 			return err
 		}

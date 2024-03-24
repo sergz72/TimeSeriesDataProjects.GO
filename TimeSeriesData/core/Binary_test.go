@@ -2,7 +2,6 @@ package core
 
 import (
 	"TimeSeriesData/crypto"
-	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"io"
@@ -26,7 +25,7 @@ func newTestBinaryData(reader io.Reader) (testBinaryData, error) {
 
 func TestBinarySaver(t *testing.T) {
 	source := testBinaryData{1}
-	saver := &BinarySaver[testBinaryData]{data: new(bytes.Buffer)}
+	saver := NewBinarySaver(nil)
 	err := saver.Save(source, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -45,7 +44,7 @@ func TestBinarySaver(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	saver = NewBinarySaver[testBinaryData](processor, new(bytes.Buffer))
+	saver = NewBinarySaver(processor)
 	err = saver.Save(source, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -56,13 +55,14 @@ func TestBinarySaver(t *testing.T) {
 	}
 }
 
-func saveIndex(index int, value []testBinaryData, writer io.Writer) error {
-	return value[index].Save(writer)
+func saveIndex(index int, value any, writer io.Writer) error {
+	v := value.([]testBinaryData)
+	return v[index].Save(writer)
 }
 
 func TestBinarySaverArray(t *testing.T) {
 	source := []testBinaryData{{1}, {2}, {3}}
-	saver := &BinarySaver[[]testBinaryData]{data: new(bytes.Buffer)}
+	saver := NewBinarySaver(nil)
 	err := saver.Save(source, saveIndex)
 	if err != nil {
 		t.Fatal(err)
@@ -83,7 +83,7 @@ func TestBinarySaverArray(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	saver = NewBinarySaver[[]testBinaryData](processor, new(bytes.Buffer))
+	saver = NewBinarySaver(processor)
 	err = saver.Save(source, saveIndex)
 	if err != nil {
 		t.Fatal(err)

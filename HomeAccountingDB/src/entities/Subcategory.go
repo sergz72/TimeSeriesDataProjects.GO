@@ -119,7 +119,7 @@ func (s Subcategory) Save(writer io.Writer) error {
 	if err != nil {
 		return err
 	}
-	l := uint8(len(s.RequiredProperties))
+	l := uint16(len(s.RequiredProperties))
 	err = binary.Write(writer, binary.LittleEndian, l)
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func NewSubcategoryFromBinary(reader io.Reader) (Subcategory, error) {
 	if err != nil {
 		return Subcategory{}, nil
 	}
-	var l uint8
+	var l uint16
 	err = binary.Read(reader, binary.LittleEndian, &l)
 	if err != nil {
 		return Subcategory{}, nil
