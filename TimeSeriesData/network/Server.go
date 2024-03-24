@@ -20,8 +20,9 @@ Server message structure:
 */
 
 const (
-	ERROR uint8 = 1
-	OK    uint8 = 0
+	OK       uint8 = 0
+	OK_BZIP2 uint8 = 1
+	ERROR    uint8 = 0x7F
 )
 
 type TcpServer[T any] struct {
@@ -120,7 +121,12 @@ func (s *TcpServer[T]) handleTcp(conn net.Conn) {
 	if err != nil {
 		sendResponse(conn, aesKey, aesNonce, ERROR, []byte(err.Error()))
 	} else if response != nil {
-		sendResponse(conn, aesKey, aesNonce, OK, response)
+		compressed, err := bzipData(response)
+		if err != nil || len(compressed) >= len(response) {
+			sendResponse(conn, aesKey, aesNonce, OK, response)
+		} else {
+			sendResponse(conn, aesKey, aesNonce, OK_BZIP2, compressed)
+		}
 	}
 	logTcpRequest(conn.RemoteAddr(), "[Done]")
 }
