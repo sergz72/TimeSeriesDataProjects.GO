@@ -5,8 +5,11 @@ import (
 	"TimeSeriesData/crypto"
 	"TimeSeriesData/network"
 	"fmt"
+	"log"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 )
 
@@ -57,15 +60,25 @@ func main() {
 func startServer(s settings) {
 	userData := tcpServerData{s: s}
 	server, err := network.NewTcpServer[tcpServerData](s.ServerPort, s.Key, "HomeAccountingDB", &userData,
-		func(request []byte, userData *tcpServerData) ([]byte, error) {
+		func(request []byte, userData *tcpServerData) ([]byte, error, bool) {
 			return userData.handle(request)
 		})
 	if err != nil {
 		panic(err)
 	}
+
+	//handle CTRL C
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("Interrupt signal. Terminating TCP server...")
+		server.Terminate()
+	}()
+
 	err = server.Start()
 	if err != nil {
-		panic(err)
+		log.Println(err.Error())
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"log"
 	"net"
+	"sync"
 )
 
 /*
@@ -27,12 +28,13 @@ type TcpServer[T any] struct {
 	port     int
 	key      *rsa.PrivateKey
 	label    []byte
-	handler  func([]byte, *T) ([]byte, error)
+	handler  func([]byte, *T) ([]byte, error, bool)
 	userData *T
+	listener *net.TCPListener
 }
 
 func NewTcpServer[T any](port int, keyFileName string, label string, userData *T,
-	handler func([]byte, *T) ([]byte, error)) (*TcpServer[T], error) {
+	handler func([]byte, *T) ([]byte, error, bool)) (*TcpServer[T], error) {
 	key, err := crypto.LoadRSAPrivateKey(keyFileName)
 	if err != nil {
 		return nil, err
@@ -46,22 +48,38 @@ func NewTcpServer[T any](port int, keyFileName string, label string, userData *T
 	}, nil
 }
 
+func (s *TcpServer[T]) Terminate() {
+	l := s.listener
+	s.listener = nil
+	if l != nil {
+		_ = l.Close()
+	}
+}
+
 func (s *TcpServer[T]) Start() error {
 	addr := net.TCPAddr{Port: s.port}
-	l, err := net.ListenTCP("tcp", &addr)
+	var err error
+	s.listener, err = net.ListenTCP("tcp", &addr)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = l.Close() }()
 	log.Printf("TCP server started on port %d\n", s.port)
+	var wg sync.WaitGroup
 	for {
-		conn, err := l.Accept()
+		conn, err := s.listener.Accept()
 		if err != nil {
-			log.Println("Error accepting: ", err.Error())
+			log.Printf("Error accepting: %v\nWaiting for all goroutines to finish...\n", err.Error())
+			wg.Wait()
+			s.Terminate()
+			log.Println("TCP server terminated")
 			return err
 		}
 		// Handle connections in a new goroutine.
-		go s.handleTcp(conn, l)
+		go func() {
+			wg.Add(1)
+			s.handleTcp(conn)
+			wg.Done()
+		}()
 	}
 }
 
@@ -69,7 +87,7 @@ func logTcpRequest(addr net.Addr, prefix string) {
 	log.Printf("%v TCP request from address %s\n", prefix, addr.String())
 }
 
-func (s *TcpServer[T]) handleTcp(conn net.Conn, l *net.TCPListener) {
+func (s *TcpServer[T]) handleTcp(conn net.Conn) {
 	defer func() { _ = conn.Close() }()
 	logTcpRequest(conn.RemoteAddr(), "[Start]")
 	buf := make([]byte, 1024)
@@ -85,14 +103,21 @@ func (s *TcpServer[T]) handleTcp(conn net.Conn, l *net.TCPListener) {
 	}
 	if len(decrypted) <= 44 {
 		log.Printf("wrong decoded data length %v\n", err.Error())
-		_ = l.Close()
+		s.Terminate()
 		return
 	}
-	response, err := s.handler(decrypted[44:], s.userData)
+	response, err, terminate := s.handler(decrypted[44:], s.userData)
+	if err != nil {
+		log.Printf("handler error %v\n", err.Error())
+	}
+	if terminate {
+		log.Println("fatal error, terminating tcp server")
+		s.Terminate()
+		return
+	}
 	aesKey := decrypted[:32]
 	aesNonce := decrypted[32:44]
 	if err != nil {
-		log.Printf("handler error %v\n", err.Error())
 		sendResponse(conn, aesKey, aesNonce, ERROR, []byte(err.Error()))
 	} else if response != nil {
 		sendResponse(conn, aesKey, aesNonce, OK, response)

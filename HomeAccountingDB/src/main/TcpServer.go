@@ -4,6 +4,7 @@ import (
 	"TimeSeriesData/crypto"
 	"bytes"
 	"errors"
+	"reflect"
 	"sync"
 )
 
@@ -19,27 +20,37 @@ type command interface {
 	ReadOnlyLockRequired() bool
 }
 
-func (d *tcpServerData) handle(request []byte) ([]byte, error) {
+func (d *tcpServerData) handle(request []byte) ([]byte, error, bool) {
 	if len(request) < 33 {
-		return nil, errors.New("too short request")
+		// terminate program
+		return nil, errors.New("too short request"), true
+	}
+	aesKey := request[:32]
+	if d.aesKey != nil && !reflect.DeepEqual(d.aesKey, aesKey) {
+		// terminate program
+		return nil, errors.New("wrong AES key"), true
 	}
 	cmd, err := decodeRequest(request[32:])
 	if err != nil {
-		return nil, err
+		return nil, err, false
 	}
 	if d.db == nil {
 		d.lock.Lock()
 		if d.db == nil {
-			aes, err := crypto.NewAesGcm(request[:32])
+			d.aesKey = make([]byte, 32)
+			copy(d.aesKey, aesKey)
+			aes, err := crypto.NewAesGcm(d.aesKey)
 			if err != nil {
 				d.lock.Unlock()
-				return nil, err
+				// terminate program
+				return nil, err, true
 			}
 			c := newBinaryDBConfiguration(aes)
 			d.db, err = initDatabase(d.s, c)
 			if err != nil {
 				d.lock.Unlock()
-				return nil, err
+				// terminate program
+				return nil, err, true
 			}
 		}
 		d.lock.Unlock()
@@ -51,7 +62,9 @@ func (d *tcpServerData) handle(request []byte) ([]byte, error) {
 		d.lock.Lock()
 		defer d.lock.Unlock()
 	}
-	return cmd.Execute(d.db)
+	var data []byte
+	data, err = cmd.Execute(d.db)
+	return data, err, false
 }
 
 func decodeRequest(request []byte) (command, error) {
