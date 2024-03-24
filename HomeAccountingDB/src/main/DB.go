@@ -5,8 +5,11 @@ import (
 	"TimeSeriesData/core"
 	"errors"
 	"fmt"
+	"github.com/sergz72/expreval"
 	"os"
 )
+
+const parserStackSize = 100
 
 type settings struct {
 	MinYear                int
@@ -295,6 +298,17 @@ func (d *dB) saveHints(saver core.DataSaver, fileName string) error {
 }
 
 func (d *dB) addOperation(command *addOperationCommand) ([]byte, error) {
+	value, err := expreval.Eval(command.summa, parserStackSize)
+	if err != nil {
+		return nil, err
+	}
+	var amount *float64
+	if len(command.amount) > 0 {
+		*amount, err = expreval.Eval(command.amount, parserStackSize)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return nil, errors.New("not implemented")
 }
 
