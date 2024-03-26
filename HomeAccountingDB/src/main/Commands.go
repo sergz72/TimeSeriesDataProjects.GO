@@ -49,6 +49,34 @@ func (c *opsCommand) ReadOnlyLockRequired() bool {
 	return false
 }
 
+type opsRangeCommand struct {
+	from int
+	to   int
+}
+
+func newOpsRangeCommand(buffer *bytes.Buffer) (command, error) {
+	if buffer.Len() != 8 {
+		return nil, errors.New("invalid opsRange command")
+	}
+	var from uint32
+	err := binary.Read(buffer, binary.LittleEndian, &from)
+	if err != nil {
+		return nil, err
+	}
+	var to uint32
+	err = binary.Read(buffer, binary.LittleEndian, &to)
+	fmt.Printf("opsRange command, from=%v, to=%v\n", from, to)
+	return &opsRangeCommand{int(from), int(to)}, err
+}
+
+func (c *opsRangeCommand) Execute(db *dB) ([]byte, error) {
+	return db.getOpsAndTotals(c.from, c.to)
+}
+
+func (c *opsRangeCommand) ReadOnlyLockRequired() bool {
+	return false
+}
+
 type addOperationCommand struct {
 	date        int
 	subcategory int

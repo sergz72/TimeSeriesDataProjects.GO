@@ -140,7 +140,7 @@ func doFilterChanges(changes map[int]*FinanceChange, accounts core.DictionaryDat
 }
 
 func (r *FinanceRecord) Save(writer io.Writer) error {
-	err := binary.Write(writer, binary.LittleEndian, uint32(len(r.operations)))
+	err := binary.Write(writer, binary.LittleEndian, uint16(len(r.operations)))
 	if err != nil {
 		return err
 	}
@@ -150,12 +150,12 @@ func (r *FinanceRecord) Save(writer io.Writer) error {
 			return err
 		}
 	}
-	err = binary.Write(writer, binary.LittleEndian, uint32(len(r.totals)))
+	err = binary.Write(writer, binary.LittleEndian, uint16(len(r.totals)))
 	if err != nil {
 		return err
 	}
 	for k, v := range r.totals {
-		err = binary.Write(writer, binary.LittleEndian, uint32(k))
+		err = binary.Write(writer, binary.LittleEndian, uint16(k))
 		if err != nil {
 			return err
 		}
@@ -184,9 +184,30 @@ func (r *FinanceRecord) BuildHints() map[FinOpPropertyCode]map[string]bool {
 	return result
 }
 
+func (r *FinanceRecord) Copy(from, to int) *FinanceRecord {
+	return &FinanceRecord{
+		operations: r.GetOperations(from, to),
+		totals:     r.totals,
+	}
+}
+
+func (r *FinanceRecord) GetOperations(from, to int) []FinanceOperation {
+	var result []FinanceOperation
+	for _, op := range r.operations {
+		if op.Date >= from && op.Date <= to {
+			result = append(result, op)
+		}
+	}
+	return result
+}
+
+func (r *FinanceRecord) AddOperations(operations []FinanceOperation) {
+	r.operations = append(r.operations, operations...)
+}
+
 func NewFinanceRecordFromBinary(reader io.Reader) (*FinanceRecord, error) {
 	var r FinanceRecord
-	var l uint32
+	var l uint16
 	err := binary.Read(reader, binary.LittleEndian, &l)
 	if err != nil {
 		return nil, err
@@ -206,7 +227,7 @@ func NewFinanceRecordFromBinary(reader io.Reader) (*FinanceRecord, error) {
 	}
 	r.totals = make(map[int]int)
 	for l > 0 {
-		var k uint32
+		var k uint16
 		err = binary.Read(reader, binary.LittleEndian, &k)
 		if err != nil {
 			return nil, err

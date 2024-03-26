@@ -255,6 +255,33 @@ func (d *dB) getOpsAndChanges(date int) ([]byte, error) {
 	return saver.GetBytes(), nil
 }
 
+func (d *dB) getOpsAndTotals(from, to int) ([]byte, error) {
+	i, err := d.data.Iterator(from, to)
+	if err != nil {
+		return nil, err
+	}
+	record := entities.NewFinanceRecord(nil)
+	first := true
+	for i.HasNext() {
+		_, v, err := i.Next()
+		if err != nil {
+			return nil, err
+		}
+		if first {
+			record = v.Copy(from, to)
+			first = false
+		} else {
+			record.AddOperations(v.GetOperations(from, to))
+		}
+	}
+	saver := core.NewBinarySaver(nil)
+	err = saver.Save(record, nil)
+	if err != nil {
+		return nil, err
+	}
+	return saver.GetBytes(), nil
+}
+
 func (d *dB) buildHints() error {
 	i, err := d.data.Iterator(0, 99999999)
 	if err != nil {
@@ -298,7 +325,7 @@ func (d *dB) saveHints(saver core.DataSaver, fileName string) error {
 }
 
 func (d *dB) addOperation(command *addOperationCommand) ([]byte, error) {
-	value, err := expreval.Eval(command.summa, parserStackSize)
+	_, err := expreval.Eval(command.summa, parserStackSize)
 	if err != nil {
 		return nil, err
 	}
